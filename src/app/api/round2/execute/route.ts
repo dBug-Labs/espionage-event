@@ -3,6 +3,7 @@ import connectToDatabase from '@/lib/mongodb';
 import CodingQuestion from '@/models/CodingQuestion';
 import Participant from '@/models/Participant';
 import { getConfig } from '@/models/EventConfig';
+import { buildSubmissionSource, getJudge0LanguageId, pickRound2Questions } from '@/lib/round2';
 
 // Submit against hidden test cases — scoring
 export async function POST(req: NextRequest) {
@@ -27,14 +28,21 @@ export async function POST(req: NextRequest) {
     const judge0Url = process.env.JUDGE0_API_URL;
     if (!judge0Url) return NextResponse.json({ error: 'Compiler not configured.' }, { status: 503 });
 
-    const langMap: Record<string, number> = {
-      python: 71,
-      cpp: 54,
-      java: 62,
-      javascript: 63,
-    };
+    const visibleQuestions = await CodingQuestion.find({}, '_id order points').sort({ order: 1 }).lean();
+    const assignedQuestions = pickRound2Questions(
+      visibleQuestions.map((item) => ({
+        _id: item._id.toString(),
+        order: item.order,
+        points: item.points,
+      })),
+      email.toLowerCase()
+    );
+    const assignedIds = new Set(assignedQuestions.map((item) => item._id));
+    if (!assignedIds.has(questionId)) {
+      return NextResponse.json({ error: 'Question not assigned to this login.' }, { status: 403 });
+    }
 
-    const langId = langMap[language];
+    const langId = getJudge0LanguageId(language);
     if (!langId) return NextResponse.json({ error: 'Unsupported language.' }, { status: 400 });
 
     // Run against all hidden test cases
@@ -55,7 +63,7 @@ export async function POST(req: NextRequest) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            source_code: code,
+            source_code: buildSubmissionSource(question.toObject(), language, code),
             language_id: langId,
             stdin: tc.input,
             expected_output: tc.expectedOutput,
@@ -101,12 +109,10 @@ export async function POST(req: NextRequest) {
     if (passed === total) acceptedQuestionIds.add(questionId);
 
     // Fetch all coding questions to sum points
-    const allQuestions = await CodingQuestion.find().lean();
+    const pointsById = new Map(assignedQuestions.map((q) => [q._id, q.points]));
     let totalScore = 0;
-    for (const q of allQuestions) {
-      if (acceptedQuestionIds.has(q._id.toString())) {
-        totalScore += q.points;
-      }
+    for (const acceptedId of acceptedQuestionIds) {
+      totalScore += pointsById.get(acceptedId) ?? 0;
     }
     participant.round2Score = totalScore;
     await participant.save();

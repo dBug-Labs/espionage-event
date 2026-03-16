@@ -277,6 +277,47 @@ export default function AdminPage() {
     } catch { alert('Error.'); }
   }
 
+  async function handleSeedDefaults() {
+    if (!confirm('Replace the current Round 1 and Round 2 question banks with the espionage defaults?')) return;
+    try {
+      const res = await fetch('/api/admin/seed-defaults', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: savedPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to seed.');
+        return;
+      }
+      alert(`Seeded ${data.mcqInserted} MCQs and ${data.codingInserted} coding questions.`);
+      fetchQuestions(savedPassword, 'mcq');
+      fetchQuestions(savedPassword, 'coding');
+    } catch {
+      alert('Failed to seed default questions.');
+    }
+  }
+
+  async function handleDeleteParticipant(participantId: string) {
+    if (!confirm(`Are you sure you want to permanently delete participant ${participantId}? This action cannot be undone.`)) return;
+    try {
+      const res = await fetch('/api/admin/delete-participant', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: savedPassword, participantId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || 'Deleted successfully.');
+        fetchParticipants(savedPassword);
+      } else {
+        alert(data.error || 'Failed to delete.');
+      }
+    } catch {
+      alert('Error deleting participant.');
+    }
+  }
+
   async function handleExport() {
     setExporting(true);
     try {
@@ -432,7 +473,7 @@ export default function AdminPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', background: 'rgba(13,17,23,0.8)', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', minWidth: 900 }}>
                   <thead>
                     <tr style={{ background: 'linear-gradient(135deg, rgba(0,51,17,0.4), rgba(13,17,23,0.9))', borderBottom: '1px solid var(--border-bright)' }}>
-                      {['ID', 'Name', 'Email', 'Reg No', 'Phone', 'Attendance', 'Amount', 'Status', 'Payment ID', 'Date'].map((h) => (
+                      {['ID', 'Name', 'Email', 'Reg No', 'Phone', 'Attendance', 'Amount', 'Status', 'Payment ID', 'Date', 'Actions'].map((h) => (
                         <th key={h} style={{ padding: '12px 14px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--spy-green)', letterSpacing: 1.5, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                       ))}
                     </tr>
@@ -480,6 +521,25 @@ export default function AdminPage() {
                         <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontSize: 10, color: 'var(--text-dim)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.paymentId}</td>
                         <td style={{ padding: '10px 14px', fontSize: 11, color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
                           {new Date(p.createdAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                        </td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <button
+                            onClick={() => handleDeleteParticipant(p.participantId)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: 'var(--spy-red)',
+                              fontSize: 16,
+                              opacity: 0.6,
+                              transition: 'opacity 0.2s'
+                            }}
+                            onMouseOver={(e) => (e.currentTarget.style.opacity = '1')}
+                            onMouseOut={(e) => (e.currentTarget.style.opacity = '0.6')}
+                            title="Delete Participant"
+                          >
+                            🗑️
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -690,6 +750,13 @@ export default function AdminPage() {
                 style={{ padding: '8px 20px', fontSize: 13 }}
               >
                 <span>Round 2 (Coding)</span>
+              </button>
+              <button
+                onClick={handleSeedDefaults}
+                className="btn-classified"
+                style={{ padding: '8px 20px', fontSize: 13, marginLeft: 'auto' }}
+              >
+                <span>Load Espionage Defaults</span>
               </button>
             </div>
 

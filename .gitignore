@@ -39,3 +39,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local data and temporary files
+/generated_*.json
+/final_*.json
+/*.txt
+/check_json.js
+/do_seed.js
+/generate_questions.ts
+/merge_questions.js
+/test-rp.js

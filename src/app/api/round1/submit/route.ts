@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     let score = 0;
     let correct = 0;
-    const total = questions.length;
+    const total = participant.round1QuestionIds.length || questions.length;
 
     for (const ans of answers) {
       const correctAnswer = questionMap.get(ans.questionId);

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getSession } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
+import { isShortcutBlocked } from '@/lib/round2';
 
 interface Question {
   _id: string;
@@ -124,19 +125,28 @@ export default function Round1Page() {
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
   }, [started, submitted, triggerWarning]);
 
-  // Anti-cheat: block copy/paste/right-click
+  // Anti-cheat: block copy/paste/right-click/shortcuts
   useEffect(() => {
     if (!started || submitted) return;
     const prevent = (e: Event) => e.preventDefault();
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (isShortcutBlocked(e)) {
+        e.preventDefault();
+        e.stopPropagation();
+        triggerWarning('Shortcut keys are disabled during the test!');
+      }
+    };
     document.addEventListener('copy', prevent);
     document.addEventListener('paste', prevent);
     document.addEventListener('contextmenu', prevent);
+    document.addEventListener('keydown', handleKeydown, true);
     return () => {
       document.removeEventListener('copy', prevent);
       document.removeEventListener('paste', prevent);
       document.removeEventListener('contextmenu', prevent);
+      document.removeEventListener('keydown', handleKeydown, true);
     };
-  }, [started, submitted]);
+  }, [started, submitted, triggerWarning]);
 
   // Enter fullscreen and start
   async function handleStart() {

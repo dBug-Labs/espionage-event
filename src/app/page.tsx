@@ -197,6 +197,11 @@ export default function LandingPage() {
               <span>Register Now</span>
             </button>
           </Link>
+          <Link href="/login">
+            <button className="btn-spy" style={{ padding: '10px 24px', fontSize: 14 }}>
+              <span>Login to Dashboard</span>
+            </button>
+          </Link>
         </div>
       </nav>
 
@@ -417,15 +422,37 @@ export default function LandingPage() {
 
           {/* CTA */}
           <div
-            className="animate-fadeInUp animate-float"
-            style={{ display: 'inline-block', animationDelay: '0.5s' }}
+            className="animate-fadeInUp"
+            style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              gap: 16, 
+              flexWrap: 'wrap',
+              animationDelay: '0.5s' 
+            }}
           >
             <Link href="/register">
               <button
                 className="btn-red animate-glow"
-                style={{ padding: '18px 56px', fontSize: 18, borderRadius: 12, letterSpacing: 1 }}
+                style={{ padding: '18px 40px', fontSize: 18, borderRadius: 12, letterSpacing: 1 }}
               >
                 <span>🎟️ Register Your Team</span>
+              </button>
+            </Link>
+            <Link href="/login">
+              <button
+                className="btn-outline"
+                style={{ 
+                  padding: '18px 40px', 
+                  fontSize: 18, 
+                  borderRadius: 12, 
+                  letterSpacing: 1,
+                  background: 'rgba(255,215,0,0.05)',
+                  border: '1px solid var(--gold)',
+                  color: 'var(--gold)'
+                }}
+              >
+                <span>🔑 Login to Dashboard</span>
               </button>
             </Link>
           </div>

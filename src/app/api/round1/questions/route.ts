@@ -22,8 +22,42 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'You have already submitted Round 1.' }, { status: 403 });
     }
 
-    // Return questions WITHOUT correctAnswer
-    const questions = await MCQQuestion.find({}, '-correctAnswer').sort({ order: 1 }).lean();
+    let questions;
+    if (participant.round1QuestionIds && participant.round1QuestionIds.length > 0) {
+      // Fetch assigned questions
+      questions = await MCQQuestion.find(
+        { _id: { $in: participant.round1QuestionIds } },
+        '-correctAnswer'
+      ).lean();
+      
+      // Sort them in the order they were stored to keep consistency
+      const idMap = new Map(participant.round1QuestionIds.map((id, index) => [id.toString(), index]));
+      questions.sort((a, b) => (idMap.get(a._id.toString()) ?? 0) - (idMap.get(b._id.toString()) ?? 0));
+    } else {
+      // Pick 30 random questions
+      const allQuestions = await MCQQuestion.find({}, '_id').lean();
+      if (allQuestions.length === 0) {
+        return NextResponse.json({ questions: [] });
+      }
+
+      // Shuffle and pick 30
+      const shuffled = allQuestions.sort(() => 0.5 - Math.random());
+      const selected = shuffled.slice(0, 30);
+      const selectedIds = selected.map((q) => q._id.toString());
+
+      // Save to participant
+      participant.round1QuestionIds = selectedIds;
+      await participant.save();
+
+      // Fetch full question data
+      questions = await MCQQuestion.find(
+        { _id: { $in: selectedIds } },
+        '-correctAnswer'
+      ).lean();
+      
+      const idMap = new Map(selectedIds.map((id, index) => [id, index]));
+      questions.sort((a, b) => (idMap.get(a._id.toString()) ?? 0) - (idMap.get(b._id.toString()) ?? 0));
+    }
 
     return NextResponse.json({ questions });
   } catch (err) {

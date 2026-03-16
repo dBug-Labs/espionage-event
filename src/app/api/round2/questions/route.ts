@@ -3,6 +3,7 @@ import connectToDatabase from '@/lib/mongodb';
 import CodingQuestion from '@/models/CodingQuestion';
 import Participant from '@/models/Participant';
 import { getConfig } from '@/models/EventConfig';
+import { pickRound2Questions } from '@/lib/round2';
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,11 +23,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'You are not shortlisted for Round 2.' }, { status: 403 });
     }
 
-    // Return questions WITHOUT hiddenTestCases
-    const questions = await CodingQuestion.find(
-      {},
-      '-hiddenTestCases'
-    ).sort({ order: 1 }).lean();
+    const allQuestions = await CodingQuestion.find({}, '-hiddenTestCases -wrappers').sort({ order: 1 }).lean();
+    const questions = pickRound2Questions(
+      allQuestions.map((question) => ({
+        ...question,
+        _id: question._id.toString(),
+      })),
+      email.toLowerCase()
+    );
 
     return NextResponse.json({ questions });
   } catch (err) {
