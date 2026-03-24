@@ -123,7 +123,7 @@ export default function LandingPage() {
         </section>
 
         <section className="py-24 bg-surface-container-lowest border-y border-outline-variant/20 relative overflow-hidden" id="operations">
-          <div className="absolute right-0 top-0 opacity-5 font-black text-[20rem] font-headline select-none pointer-events-none">09:00</div>
+          <div className="absolute right-0 top-0 opacity-5 font-black text-[20rem] font-headline select-none pointer-events-none"></div>
           <div className="max-w-7xl mx-auto px-6 md:px-12">
             <h2 className="font-headline text-5xl font-black text-on-surface uppercase tracking-tighter mb-16 text-center">Operations Schedule</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-px bg-outline-variant/20">
