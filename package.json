@@ -12,9 +12,11 @@
     "@monaco-editor/react": "^4.7.0",
     "@tailwindcss/postcss": "^4",
     "@types/nodemailer": "^7.0.11",
+    "dompurify": "^3.3.3",
     "dotenv": "^17.3.1",
     "html5-qrcode": "^2.3.8",
     "jszip": "^3.10.1",
+    "monaco-editor": "^0.55.1",
     "mongoose": "^9.2.4",
     "next": "^16.2.1",
     "nodemailer": "^8.0.2",
@@ -32,5 +34,8 @@
     "eslint": "^9",
     "eslint-config-next": "15.1.0",
     "typescript": "^5"
+  },
+  "overrides": {
+    "dompurify": "^3.3.3"
   }
 }
