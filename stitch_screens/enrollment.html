@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>INTEL_TERMINAL_V1.0 // AGENT_ENROLLMENT</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary-fixed-dim": "#c8c6c6",
+              "surface-dim": "#131313",
+              "inverse-primary": "#c00100",
+              "outline-variant": "#603e39",
+              "on-surface": "#e5e2e1",
+              "on-error": "#690005",
+              "secondary-fixed": "#ffdeac",
+              "surface": "#131313",
+              "primary": "#ffb4a8",
+              "on-surface-variant": "#ebbbb4",
+              "on-tertiary-fixed": "#1b1c1c",
+              "tertiary": "#c8c6c6",
+              "outline": "#b18780",
+              "primary-fixed-dim": "#ffb4a8",
+              "surface-variant": "#353534",
+              "secondary-container": "#feb300",
+              "surface-container-lowest": "#0e0e0e",
+              "primary-fixed": "#ffdad4",
+              "inverse-on-surface": "#313030",
+              "tertiary-container": "#919090",
+              "surface-container-highest": "#353534",
+              "on-background": "#e5e2e1",
+              "surface-tint": "#ffb4a8",
+              "tertiary-fixed": "#e4e2e1",
+              "on-primary": "#690100",
+              "on-primary-fixed-variant": "#930100",
+              "surface-bright": "#3a3939",
+              "secondary": "#ffd799",
+              "on-error-container": "#ffdad6",
+              "on-secondary": "#432c00",
+              "on-primary-container": "#5c0000",
+              "surface-container-high": "#2a2a2a",
+              "error": "#ffb4ab",
+              "on-secondary-container": "#6a4800",
+              "surface-container-low": "#1c1b1b",
+              "on-secondary-fixed": "#281900",
+              "on-tertiary-fixed-variant": "#474747",
+              "background": "#131313",
+              "primary-container": "#ff5540",
+              "on-primary-fixed": "#410000",
+              "error-container": "#93000a",
+              "on-tertiary": "#303030",
+              "inverse-surface": "#e5e2e1",
+              "on-secondary-fixed-variant": "#604100",
+              "secondary-fixed-dim": "#ffba38",
+              "surface-container": "#201f1f",
+              "on-tertiary-container": "#292a2a"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Inter"],
+              "label": ["Space Grotesk"]
+            },
+            borderRadius: {"DEFAULT": "0rem", "lg": "0rem", "xl": "0rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .scanline {
+            width: 100%;
+            height: 2px;
+            background: rgba(255, 180, 168, 0.05);
+            position: absolute;
+            z-index: 10;
+        }
+        .terminal-bg {
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15),
+                rgba(0, 0, 0, 0.15) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-x-hidden terminal-bg">
+<!-- TopAppBar -->
+<nav class="flex justify-between items-center w-full px-6 py-4 fixed top-0 z-50 bg-[#0e0e0e] border-b border-white/10 flat no shadows shadow-[0_0_15px_rgba(255,0,0,0.1)]">
+<div class="text-xl font-black text-red-600 dark:text-red-500 tracking-tighter font-headline">INTEL_TERMINAL_V1.0</div>
+<div class="hidden md:flex gap-8 items-center">
+<a class="font-['Space_Grotesk'] uppercase tracking-widest text-sm text-zinc-500 hover:text-red-400 transition-colors" href="#">MISSIONS</a>
+<a class="font-['Space_Grotesk'] uppercase tracking-widest text-sm text-red-500 font-bold border-b-2 border-red-500 pb-1" href="#">STATUS</a>
+<a class="font-['Space_Grotesk'] uppercase tracking-widest text-sm text-zinc-500 hover:text-red-400 transition-colors" href="#">ENCRYPTION</a>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-red-500/50" data-icon="terminal">terminal</span>
+<span class="material-symbols-outlined text-red-500/50" data-icon="security">security</span>
+<button class="bg-primary text-on-primary px-4 py-1.5 font-headline text-xs font-bold uppercase tracking-tighter hover:bg-red-500/10 hover:text-red-500 transition-all active:scale-95 border border-primary">LOGIN_AGENT</button>
+</div>
+</nav>
+<main class="pt-24 pb-32 min-h-screen px-6 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+<!-- Left Section: Status & Visual -->
+<div class="lg:col-span-5 space-y-8 order-2 lg:order-1">
+<div class="relative group">
+<div class="absolute -top-2 -left-2 w-8 h-8 border-t-2 border-l-2 border-secondary-fixed"></div>
+<div class="absolute -bottom-2 -right-2 w-8 h-8 border-b-2 border-r-2 border-secondary-fixed"></div>
+<div class="bg-surface-container-lowest p-1 aspect-square overflow-hidden border border-outline-variant/20">
+<img class="w-full h-full object-cover grayscale brightness-50 contrast-125 group-hover:grayscale-0 transition-all duration-700" data-alt="Cinematic macro shot of a glowing red digital circuit board with futuristic data nodes and encrypted floating code fragments" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVw0VGISTdJAqWj3dxNa-7WsOswVshlHt8G3XXHn4lhoC_jeG55EOMhsarxzNQzzqW1DFfGbQkqUUD2pDQPUeU9I0SxK5EurOwLC6hUrVZN0u0lDnjIBztC2sPIzEtripCPJvG_OqvzL4sM4nlEoCr36sDCLCp5NB7UeEzzQYnlqpnGyli7yGFB35giM0Uc8XZ_pJFcgRTKGUGq9k2K8KRa9NuxgJbqDlJz4ocPTa1aMcAU_5lnZ_yah-fnOZ2LNsh_HQuB7izpXw"/>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 bg-primary animate-pulse"></div>
+<span class="font-headline text-[10px] uppercase tracking-[0.3em] text-primary">System Online: Cryptographic Protocol Active</span>
+</div>
+<h1 class="font-headline text-5xl font-black text-on-surface leading-[0.9] tracking-tighter uppercase">ESPIONAGE<br/><span class="text-primary-container">RECRUITMENT</span></h1>
+<p class="text-on-surface-variant/80 text-sm leading-relaxed max-w-md">
+                    Initializing protocol 7-Delta. You are applying for a covert intelligence role. Your digital footprint will be scrubbed upon successful deployment. Total mission stake: <span class="text-secondary font-bold">₹70.00</span>.
+                </p>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-4 border-l-4 border-primary">
+<div class="font-headline text-[10px] text-primary mb-1 uppercase tracking-widest">Clearance</div>
+<div class="font-headline text-xl font-bold">LEVEL_01</div>
+</div>
+<div class="bg-surface-container-low p-4 border-l-4 border-secondary">
+<div class="font-headline text-[10px] text-secondary mb-1 uppercase tracking-widest">Assignment</div>
+<div class="font-headline text-xl font-bold">SOLO_OP</div>
+</div>
+</div>
+</div>
+<!-- Right Section: Enrollment Form -->
+<div class="lg:col-span-7 bg-surface-container-low p-8 relative order-1 lg:order-2">
+<div class="absolute top-0 right-0 p-4 font-headline text-[10px] text-outline-variant uppercase tracking-widest">
+                Ref: XJ-992/Enroll
+            </div>
+<div class="mb-10">
+<h2 class="font-headline text-2xl font-bold uppercase tracking-tight text-on-surface flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" data-icon="fingerprint">fingerprint</span>
+                    Identity_Verification
+                </h2>
+<div class="h-px w-full bg-gradient-to-r from-primary/50 to-transparent mt-2"></div>
+</div>
+<form class="space-y-8">
+<!-- Agent Alias -->
+<div class="group">
+<label class="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Agent Alias (Codename)</label>
+<div class="relative">
+<input class="w-full bg-surface-container-highest border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40" placeholder="GHOST_PROTOCOL" type="text"/>
+<div class="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-sm" data-icon="shield_person">shield_person</span>
+</div>
+</div>
+</div>
+<!-- Command Center -->
+<div class="group">
+<label class="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Command Center (College/HQ)</label>
+<div class="relative">
+<input class="w-full bg-surface-container-highest border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40" placeholder="CENTRAL_ACADEMY_TECH" type="text"/>
+<div class="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-sm" data-icon="hub">hub</span>
+</div>
+</div>
+</div>
+<!-- Contact Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="group">
+<label class="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Secure Contact (Email)</label>
+<input class="w-full bg-surface-container-highest border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40" placeholder="AGENT@SECURE.NET" type="email"/>
+</div>
+<div class="group">
+<label class="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Comm Channel (Phone)</label>
+<input class="w-full bg-surface-container-highest border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40" placeholder="+91-XXXX-XXX-XX" type="tel"/>
+</div>
+</div>
+<!-- Payment Section -->
+<div class="bg-surface-container-high p-6 border-t border-primary/20 mt-12">
+<div class="flex justify-between items-end mb-6">
+<div>
+<div class="font-headline text-[10px] uppercase tracking-[0.2em] text-primary mb-1">Contract Execution Fee</div>
+<div class="text-3xl font-headline font-black text-on-surface">₹70.00 <span class="text-sm font-normal text-outline-variant">INR</span></div>
+</div>
+<div class="text-right">
+<div class="font-headline text-[10px] uppercase tracking-[0.2em] text-on-surface-variant/40">Encryption Type</div>
+<div class="font-headline text-xs font-medium">AES-256_BIT</div>
+</div>
+</div>
+<button class="w-full py-5 bg-primary text-on-primary font-headline font-black text-xl tracking-[0.2em] uppercase transition-all hover:bg-primary-container active:scale-[0.98] shadow-[0_0_20px_rgba(255,180,168,0.2)] flex items-center justify-center gap-4" type="submit">
+                        ENROLL_AGENT
+                        <span class="material-symbols-outlined" data-icon="keyboard_double_arrow_right">keyboard_double_arrow_right</span>
+</button>
+<p class="text-[10px] font-headline text-center mt-4 text-on-surface-variant/40 uppercase tracking-widest">
+                        By enrolling, you agree to the conditions of the clandestine service directive.
+                    </p>
+</div>
+</form>
+</div>
+</main>
+<!-- Footer -->
+<footer class="fixed bottom-0 w-full flex justify-between items-center px-8 py-2 z-50 bg-[#0e0e0e] border-t border-orange-500/20">
+<div class="font-['Space_Grotesk'] text-[10px] uppercase tracking-[0.2em] text-zinc-600">
+            © 2024 CLASSIFIED DIRECTIVE // EYES ONLY
+        </div>
+<div class="flex gap-6 items-center">
+<a class="font-['Space_Grotesk'] text-[10px] uppercase tracking-[0.2em] text-zinc-600 hover:text-orange-400 transition-all opacity-80 hover:opacity-100" href="#">SYSTEM_LOGS</a>
+<a class="font-['Space_Grotesk'] text-[10px] uppercase tracking-[0.2em] text-zinc-600 hover:text-orange-400 transition-all opacity-80 hover:opacity-100" href="#">MANUAL</a>
+<a class="font-['Space_Grotesk'] text-[10px] uppercase tracking-[0.2em] text-orange-500 underline opacity-80 hover:opacity-100" href="#">TERMINATE_SESSION</a>
+</div>
+</footer>
+<!-- Overlay Scanline Effect -->
+<div class="fixed inset-0 pointer-events-none z-[60] opacity-[0.03]">
+<div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%]"></div>
+</div>
+</body></html>

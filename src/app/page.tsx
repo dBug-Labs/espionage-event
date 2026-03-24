@@ -1,740 +1,271 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
-
-const NAV_LINKS = [
-  { label: 'Experience', href: '#experience' },
-  { label: 'Spotlight', href: '#spotlight' },
-  { label: 'Rules', href: '#rules' },
-  { label: 'Timeline', href: '#timeline' },
-];
-
-const EVENT_START = new Date('2026-03-25T09:00:00+05:30').getTime();
-
-const SPOTLIGHT_ZONES = [
-  {
-    icon: '⭐',
-    zone: 'Rising Star Zone',
-    subtitle: 'Early Pattern Winners',
-    patterns: ['First Five', 'Corners', 'Unlucky'],
-    rewards: ['Stickers', 'Phone Stands', 'Small Desk Utilities', 'Light Stationery'],
-    powerCards: [
-      { name: 'Scene Change', desc: 'Swap the current question with the next unlocked one.' },
-      { name: 'Insight Spark', desc: 'Get a small hint for one case-study question.' },
-    ],
-    color: 'from-yellow-900/40 to-yellow-800/10',
-    border: 'border-yellow-600/30',
-    accent: '#FFD700',
-  },
-  {
-    icon: '🌟',
-    zone: 'Celebrity Lane',
-    subtitle: 'Line Pattern Winners',
-    patterns: ['Top Line', 'Middle Line', 'Bottom Line'],
-    rewards: ['Bottles', 'Mugs', 'LED Desk Décor', 'Medium Stationery Kits'],
-    powerCards: [
-      { name: 'Oracle Access', desc: 'Use ChatGPT for 1–2 minutes.' },
-      { name: 'Tech Whisper', desc: 'Ask one clarification question to the tech team.' },
-      { name: 'Clean Slate Pass', desc: 'Skip one question without penalty.' },
-    ],
-    color: 'from-amber-900/40 to-amber-800/10',
-    border: 'border-amber-500/30',
-    accent: '#f59e0b',
-  },
-  {
-    icon: '🏆',
-    zone: 'Hall of Fame Deck',
-    subtitle: 'Full House Winners',
-    patterns: ['Full House Winner 1', 'Full House Winner 2', 'Full House Winner 3'],
-    rewards: ['💰 Cash Prize', 'Red Carpet Walk', 'Trophy'],
-    powerCards: [],
-    color: 'from-red-900/40 to-red-800/10',
-    border: 'border-red-500/40',
-    accent: '#ef4444',
-  },
-];
-
-const RULES = [
-  { num: '01', title: 'Team Formation', desc: 'Form a team of 2–3 participants. Entry fee: ₹50 per participant.' },
-  { num: '02', title: 'Ticket & Portal', desc: 'Each team gets a hard-copy tambola ticket + a unique portal access code.' },
-  { num: '03', title: 'Number Draws', desc: 'Tokens are drawn every 2–2.5 minutes. Each number unlocks a case-study question on the portal.' },
-  { num: '04', title: 'Solve & Claim', desc: 'Solve the questions linked to your ticket numbers. A claim is only valid if all linked questions are answered correctly.' },
-  { num: '05', title: 'Valid Patterns', desc: 'First Five • Corners • Unlucky • Top Line • Middle Line • Bottom Line • Full House (3 winners).' },
-  { num: '06', title: 'Red Carpet Dress Code', desc: 'Red carpet attire is mandatory. Come dressed to impress — you\'re a star.' },
-];
-
-const TIMELINE = [
-  { time: '9:00 AM', title: 'Student Reporting', desc: 'Registration desk • Ticket distribution • Portal login • Red Carpet photo entry' },
-  { time: '10:00 AM', title: 'Opening Ceremony', desc: 'Welcome speech • Rules explanation • Portal demo • Spotlight Lane intro (15 min)' },
-  { time: '10:15 AM', title: 'Game Begins 🎯', desc: 'Token drawn every 2–2.5 min • Questions unlock instantly • Claims verified continuously' },
-  { time: '1:15 PM', title: 'Break', desc: 'Refreshments • Red Carpet photos (30 min)' },
-  { time: '1:45 PM', title: 'Stage Performance', desc: 'Cultural performance • Entertainment • Photography & announcements (30 min)' },
-  { time: '2:15 PM', title: 'Game Resumes', desc: 'Final token draws • Line and Full House patterns • Verification continues' },
-  { time: 'Closing', title: 'Closing Ceremony', desc: 'Full House winners • Red Carpet walk • Organising Team Ramp Walk • Final photos' },
-];
+import Image from 'next/image';
 
 export default function LandingPage() {
-  const [scrolled, setScrolled] = useState(false);
-  const [timeLeft, setTimeLeft] = useState({ d: 0, h: 0, m: 0, s: 0 });
-  const heroRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 60);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Countdown timer
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date().getTime();
-      const distance = EVENT_START - now;
-
-      if (distance < 0) {
-        clearInterval(timer);
-        setTimeLeft({ d: 0, h: 0, m: 0, s: 0 });
-        return;
-      }
-
-      setTimeLeft({
-        d: Math.floor(distance / (1000 * 60 * 60 * 24)),
-        h: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        m: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-        s: Math.floor((distance % (1000 * 60)) / 1000),
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  // Particle effect
-  useEffect(() => {
-    const canvas = document.getElementById('particles') as HTMLCanvasElement;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const particles: { x: number; y: number; vx: number; vy: number; size: number; opacity: number }[] = [];
-    for (let i = 0; i < 60; i++) {
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
-        size: Math.random() * 2 + 0.5,
-        opacity: Math.random() * 0.5 + 0.1,
-      });
-    }
-
-    let animId: number;
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (const p of particles) {
-        p.x += p.vx;
-        p.y += p.vy;
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 215, 0, ${p.opacity})`;
-        ctx.fill();
-      }
-      animId = requestAnimationFrame(animate);
-    };
-    animate();
-    return () => cancelAnimationFrame(animId);
-  }, []);
-
   return (
-    <div style={{ background: 'var(--bg-dark)', minHeight: '100vh', width: '100%', overflowX: 'hidden' }}>
-      {/* Navbar */}
-      <nav
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 100,
-          padding: '16px clamp(20px, 4vw, 48px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: scrolled ? 'rgba(10,10,10,0.95)' : 'transparent',
-          backdropFilter: scrolled ? 'blur(12px)' : 'none',
-          borderBottom: scrolled ? '1px solid rgba(255,215,0,0.1)' : 'none',
-          transition: 'all 0.4s ease',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/sqac-logo.png" alt="SQAC" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
+    <>
+      <div className="fixed inset-0 scanlines z-50 pointer-events-none opacity-20"></div>
+      
+      <nav className="bg-[#131313] border-b border-white/10 flex justify-between items-center w-full px-6 py-4 sticky top-0 z-40">
+        <div className="text-2xl font-black text-red-600 tracking-tighter uppercase font-headline">ESPIONAGE</div>
+        <div className="hidden md:flex gap-8 items-center font-headline uppercase tracking-widest text-sm">
+          <a className="text-red-500 border-b-2 border-red-600 pb-1" href="#mission">Mission Briefing</a>
+          <a className="text-gray-400 hover:text-red-400 transition-colors" href="#operations">Operations</a>
+          <a className="text-gray-400 hover:text-red-400 transition-colors" href="#intelligence">Intelligence Flow</a>
+          <a className="text-gray-400 hover:text-red-400 transition-colors" href="#rules">Rules</a>
         </div>
-        <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
-          {NAV_LINKS.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              style={{
-                color: 'var(--text-muted)',
-                textDecoration: 'none',
-                fontSize: 14,
-                fontWeight: 500,
-                letterSpacing: 1,
-                transition: 'color 0.3s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--gold)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
-            >
-              {l.label}
-            </a>
-          ))}
-          <Link href="/register">
-            <button className="btn-red" style={{ padding: '10px 24px', fontSize: 14 }}>
-              <span>Register Now</span>
-            </button>
-          </Link>
-          <Link href="/login">
-            <button className="btn-spy" style={{ padding: '10px 24px', fontSize: 14 }}>
-              <span>Login to Dashboard</span>
-            </button>
-          </Link>
-        </div>
+        <Link href="/register">
+          <button className="bg-primary text-on-primary px-6 py-2 font-headline uppercase font-bold tracking-widest hover:brightness-125 transition-all active:scale-95 glow-red">
+            Join Mission
+          </button>
+        </Link>
       </nav>
 
-      {/* Hero Section */}
-      <section
-        ref={heroRef}
-        style={{
-          position: 'relative',
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden', // Ensures background elements don't cause scroll
-          padding: '140px 20px 80px', // Adjusted to 20px for mobile safe area
-        }}
-      >
-        {/* Red Carpet Background Image */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: 'url(/red-carpet.png)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center 80%', // Focus on the carpet
-            opacity: 0.85,
-            pointerEvents: 'none',
-          }}
-        />
-        {/* Dark vignette overlay for text readability */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'radial-gradient(circle at center, rgba(10,10,10,0.3) 0%, rgba(10,10,10,0.9) 100%)',
-            pointerEvents: 'none',
-          }}
-        />
-
-        {/* Background particles */}
-        <canvas
-          id="particles"
-          style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            top: '20%',
-            left: '-10%', // Move off-screen slightly but prevent overall page overflow
-            width: 'clamp(300px, 50vw, 400px)',
-            height: 'clamp(300px, 50vw, 400px)',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(139,0,0,0.15), transparent)',
-            filter: 'blur(60px)',
-            pointerEvents: 'none',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '20%',
-            right: '-10%',
-            width: 'clamp(250px, 40vw, 350px)',
-            height: 'clamp(250px, 40vw, 350px)',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(255,215,0,0.08), transparent)',
-            filter: 'blur(60px)',
-            pointerEvents: 'none',
-          }}
-        />
-
-        {/* Red carpet strip decoration */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 4,
-            background: 'linear-gradient(90deg, transparent, #8B0000, #FFD700, #8B0000, transparent)',
-          }}
-        />
-
-        <div style={{ textAlign: 'center', width: '100%', maxWidth: 1000, position: 'relative', zIndex: 1 }}>
-          {/* Badge with Logo */}
-          <div
-            className="animate-fadeInUp text-gold-gradient"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              marginBottom: 16,
-              fontSize: 'clamp(14px, 2vw, 18px)',
-              fontWeight: 600,
-              letterSpacing: 2,
-              fontFamily: 'Playfair Display, serif',
-              textTransform: 'uppercase',
-            }}
-          >
-            <span>🎬</span>
-            <span>SQAC PRESENTS</span>
-          </div>
-
-          {/* Main title */}
-          <h1
-            className="font-display animate-fadeInUp"
-            style={{
-              fontSize: 'clamp(52px, 8vw, 110px)',
-              fontWeight: 900,
-              lineHeight: 1.0,
-              marginBottom: 16,
-              animationDelay: '0.1s',
-              textShadow: '0 4px 20px rgba(0,0,0,0.5)',
-            }}
-          >
-            <span className="text-gold-gradient">HOUSIE</span>
-            <br />
-            <span style={{ color: 'var(--text-primary)' }}>OF FAME</span>
-          </h1>
-
-          <div className="rc-divider animate-fadeInUp" style={{ width: 200, marginBottom: 24, animationDelay: '0.2s' }} />
-
-          <p
-            className="animate-fadeInUp"
-            style={{
-              fontSize: 'clamp(16px, 2.5vw, 22px)',
-              color: 'var(--text-muted)',
-              fontStyle: 'italic',
-              fontFamily: 'Playfair Display',
-              marginBottom: 40,
-              animationDelay: '0.3s',
-            }}
-          >
-            Where every number tells a story!
-          </p>
-
-          {/* Countdown Timer */}
-          <div
-            className="animate-fadeInUp"
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              gap: 'clamp(12px, 3vw, 24px)',
-              marginBottom: 48,
-              animationDelay: '0.45s',
-            }}
-          >
-            {[
-              { label: 'Days', value: timeLeft.d },
-              { label: 'Hours', value: timeLeft.h },
-              { label: 'Mins', value: timeLeft.m },
-              { label: 'Secs', value: timeLeft.s },
-            ].map((unit, i) => (
-              <div key={unit.label} style={{ textAlign: 'center' }}>
-                <div
-                  style={{
-                    background: 'linear-gradient(145deg, rgba(80,0,0,0.4), rgba(20,5,5,0.8))',
-                    border: '1px solid rgba(255,215,0,0.2)',
-                    borderRadius: 12,
-                    width: 'clamp(60px, 12vw, 80px)',
-                    height: 'clamp(65px, 13vw, 85px)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: 8,
-                    boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)',
-                  }}
-                >
-                  <span className="font-display" style={{ fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {unit.value.toString().padStart(2, '0')}
-                  </span>
-                </div>
-                <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 2, color: 'var(--gold)' }}>
-                  {unit.label}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Event info pills */}
-          <div
-            className="animate-fadeInUp"
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: 'clamp(12px, 3vw, 24px)',
-              marginBottom: 56,
-              animationDelay: '0.3s',
-              fontFamily: 'Playfair Display, serif',
-            }}
-          >
-            {/* Left Block */}
-            <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span className="text-gold-gradient" style={{ fontSize: 'clamp(12px, 2vw, 16px)', letterSpacing: 1.5, fontWeight: 600 }}>WED. 09:00 AM</span>
-              <span className="text-gold-gradient" style={{ fontSize: 'clamp(12px, 2vw, 16px)', letterSpacing: 1.5, fontWeight: 600, opacity: 0.9 }}>TP-2 | 702</span>
-            </div>
-
-            {/* Center Date Block */}
-            <div
-              style={{
-                borderLeft: '1px solid rgba(255,215,0,0.4)',
-                borderRight: '1px solid rgba(255,215,0,0.4)',
-                padding: '0 clamp(12px, 3vw, 24px)',
-              }}
-            >
-              <span className="text-gold-gradient" style={{ fontSize: 'clamp(28px, 5vw, 48px)', fontWeight: 700, letterSpacing: 2 }}>
-                25/03
-              </span>
-            </div>
-
-            {/* Right Block */}
-            <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span className="text-gold-gradient" style={{ fontSize: 'clamp(12px, 2vw, 16px)', letterSpacing: 1.5, fontWeight: 600 }}>₹ 50 PER PERSON</span>
-              <span className="text-gold-gradient" style={{ fontSize: 'clamp(12px, 2vw, 16px)', letterSpacing: 1.5, fontWeight: 600, opacity: 0.9 }}>2-3 MEMBERS</span>
-            </div>
-          </div>
-
-          {/* CTA */}
-          <div
-            className="animate-fadeInUp"
-            style={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              gap: 16, 
-              flexWrap: 'wrap',
-              animationDelay: '0.5s' 
-            }}
-          >
-            <Link href="/register">
-              <button
-                className="btn-red animate-glow"
-                style={{ padding: '18px 40px', fontSize: 18, borderRadius: 12, letterSpacing: 1 }}
-              >
-                <span>🎟️ Register Your Team</span>
-              </button>
-            </Link>
-            <Link href="/login">
-              <button
-                className="btn-outline"
-                style={{ 
-                  padding: '18px 40px', 
-                  fontSize: 18, 
-                  borderRadius: 12, 
-                  letterSpacing: 1,
-                  background: 'rgba(255,215,0,0.05)',
-                  border: '1px solid var(--gold)',
-                  color: 'var(--gold)'
-                }}
-              >
-                <span>🔑 Login to Dashboard</span>
-              </button>
-            </Link>
-          </div>
-
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 16 }}>
-            Limited spots available • Dress to impress
-          </p>
-        </div>
-      </section>
-
-      <section id="experience" style={{ padding: '80px 20px', position: 'relative', background: 'linear-gradient(180deg, var(--bg-dark) 0%, #1a0505 100%)' }}>
-        {/* Glow orb */}
-        <div style={{ position: 'absolute', top: '20%', right: '-10%', width: 'clamp(300px, 50vw, 500px)', height: 'clamp(300px, 50vw, 500px)', background: 'radial-gradient(circle, rgba(139,0,0,0.15), transparent 70%)', filter: 'blur(80px)', pointerEvents: 'none' }} />
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 64 }}>
-            <p style={{ color: 'var(--gold)', fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', marginBottom: 12 }}>The Experience</p>
-            <h2 className="font-display" style={{ fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Not Your Average <span className="text-gold-gradient">Housie</span>
-            </h2>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
-            {[
-              { icon: '🧠', title: 'Case-Study Questions', desc: 'Every number drawn unlocks a medium-level practical case-study question. It\'s housie meets real-world problem solving.' },
-              { icon: '🎬', title: 'Red Carpet Glamour', desc: 'Paparazzi-style entry, stage performances, ramp walk for winners — this isn\'t just a quiz, it\'s an event.' },
-              { icon: '⚡', title: 'Power Cards', desc: 'Use special power cards to gain advantages — get hints, skip questions, or even access ChatGPT for 2 minutes.' },
-              { icon: '🏆', title: 'Spotlight Lane', desc: 'Three prize zones — Rising Star, Celebrity Lane, and the Hall of Fame Deck with cash prizes.' },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="glass-card"
-                style={{ padding: 32, transition: 'transform 0.3s, border-color 0.3s', background: 'linear-gradient(145deg, rgba(30,10,10,0.95), rgba(15,5,5,0.95))', border: '1px solid rgba(255,215,0,0.1)' }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-6px)';
-                  e.currentTarget.style.borderColor = 'rgba(255,215,0,0.4)';
-                  e.currentTarget.style.boxShadow = '0 10px 40px -10px rgba(139,0,0,0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.borderColor = 'rgba(255,215,0,0.1)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                <div style={{ fontSize: 40, marginBottom: 16 }}>{item.icon}</div>
-                <h3 className="font-display" style={{ fontSize: 22, fontWeight: 700, color: 'var(--gold)', marginBottom: 12 }}>{item.title}</h3>
-                <p style={{ color: 'var(--text-muted)', lineHeight: 1.7, fontSize: 15 }}>{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="spotlight" style={{ padding: '80px 20px', position: 'relative', background: 'linear-gradient(180deg, #1a0505 0%, #240000 50%, #1a0505 100%)' }}>
-        {/* Glow orb */}
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '80%', height: '80%', background: 'radial-gradient(ellipse, rgba(255,215,0,0.05), transparent 60%)', filter: 'blur(100px)', pointerEvents: 'none' }} />
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 64 }}>
-            <p style={{ color: 'var(--gold)', fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', marginBottom: 12 }}>Prizes & Rewards</p>
-            <h2 className="font-display" style={{ fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 700, color: 'var(--text-primary)' }}>
-              The <span className="text-gold-gradient">Spotlight Lane</span>
-            </h2>
-            <p style={{ color: 'var(--text-muted)', marginTop: 16, fontSize: 16 }}>Three zones. Three levels of glory.</p>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 28 }}>
-            {SPOTLIGHT_ZONES.map((zone) => (
-              <div
-                key={zone.zone}
-                style={{
-                  background: `linear-gradient(135deg, ${zone.zone === 'Rising Star Zone'
-                    ? 'rgba(120,100,0,0.2), rgba(10,10,10,0.8)'
-                    : zone.zone === 'Celebrity Lane'
-                      ? 'rgba(80,0,120,0.2), rgba(10,10,10,0.8)'
-                      : 'rgba(120,0,0,0.25), rgba(10,10,10,0.8)'
-                    })`,
-                  border: `1px solid ${zone.accent}30`,
-                  borderRadius: 20,
-                  padding: 32,
-                  transition: 'transform 0.3s',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-6px)')}
-                onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
-              >
-                <div style={{ fontSize: 48, marginBottom: 12 }}>{zone.icon}</div>
-                <h3 className="font-display" style={{ fontSize: 24, fontWeight: 700, color: zone.accent, marginBottom: 4 }}>{zone.zone}</h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: 13, letterSpacing: 1, marginBottom: 20 }}>{zone.subtitle}</p>
-
-                <div style={{ marginBottom: 20 }}>
-                  <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: zone.accent, marginBottom: 8 }}>Patterns</p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {zone.patterns.map((p) => (
-                      <span
-                        key={p}
-                        style={{
-                          background: `${zone.accent}18`,
-                          border: `1px solid ${zone.accent}40`,
-                          borderRadius: 999,
-                          padding: '4px 12px',
-                          fontSize: 12,
-                          color: zone.accent,
-                          fontWeight: 500,
-                        }}
-                      >
-                        {p}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={{ marginBottom: 20 }}>
-                  <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: zone.accent, marginBottom: 8 }}>Rewards</p>
-                  <ul style={{ listStyle: 'none', padding: 0 }}>
-                    {zone.rewards.map((r) => (
-                      <li key={r} style={{ fontSize: 14, color: 'var(--text-primary)', padding: '4px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ color: zone.accent }}>✦</span> {r}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {zone.powerCards.length > 0 && (
-                  <div>
-                    <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: zone.accent, marginBottom: 8 }}>Power Cards</p>
-                    {zone.powerCards.map((pc) => (
-                      <div key={pc.name} style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: '10px 14px', marginBottom: 8 }}>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>⚡ {pc.name}</p>
-                        <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{pc.desc}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="rules" style={{ padding: '80px 20px', position: 'relative', background: 'linear-gradient(180deg, #1a0505 0%, var(--bg-dark) 100%)' }}>
-        {/* Glow orb */}
-        <div style={{ position: 'absolute', bottom: '10%', left: '-5%', width: 'clamp(300px, 50vw, 400px)', height: 'clamp(300px, 50vw, 400px)', background: 'radial-gradient(circle, rgba(139,0,0,0.12), transparent 70%)', filter: 'blur(80px)', pointerEvents: 'none' }} />
-        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 64 }}>
-            <p style={{ color: 'var(--gold)', fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', marginBottom: 12 }}>How It Works</p>
-            <h2 className="font-display" style={{ fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Game <span className="text-gold-gradient">Rules</span>
-            </h2>
-          </div>
-          <div style={{ display: 'grid', gap: 16 }}>
-            {RULES.map((rule) => (
-              <div
-                key={rule.num}
-                className="glass-card"
-                style={{
-                  padding: '24px 28px',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 24,
-                  transition: 'all 0.3s',
-                  background: 'linear-gradient(90deg, rgba(30,5,5,0.8), rgba(20,20,20,0.8))',
-                  border: '1px solid rgba(139,0,0,0.3)',
-                  borderLeft: '4px solid var(--red-dark)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255,215,0,0.4)';
-                  e.currentTarget.style.borderLeftColor = 'var(--gold)';
-                  e.currentTarget.style.transform = 'translateX(6px)';
-                  e.currentTarget.style.background = 'linear-gradient(90deg, rgba(40,10,10,0.9), rgba(20,20,20,0.9))';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(139,0,0,0.3)';
-                  e.currentTarget.style.borderLeftColor = 'var(--red-dark)';
-                  e.currentTarget.style.transform = 'translateX(0)';
-                  e.currentTarget.style.background = 'linear-gradient(90deg, rgba(30,5,5,0.8), rgba(20,20,20,0.8))';
-                }}
-              >
-                <span
-                  className="font-display"
-                  style={{ fontSize: 36, fontWeight: 900, color: 'rgba(255,215,0,0.2)', lineHeight: 1, minWidth: 48 }}
-                >
-                  {rule.num}
-                </span>
-                <div>
-                  <h3 style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>{rule.title}</h3>
-                  <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.7 }}>{rule.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="timeline" style={{ padding: '80px 20px', position: 'relative', background: 'linear-gradient(180deg, var(--bg-dark) 0%, #1a0505 100%)' }}>
-        <div style={{ maxWidth: 800, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 64 }}>
-            <p style={{ color: 'var(--gold)', fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', marginBottom: 12 }}>Schedule</p>
-            <h2 className="font-display" style={{ fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Event <span className="text-gold-gradient">Timeline</span>
-            </h2>
-          </div>
-          <div style={{ position: 'relative' }}>
-            {/* Vertical line */}
-            <div
-              style={{
-                position: 'absolute',
-                left: 72,
-                top: 0,
-                bottom: 0,
-                width: 2,
-                background: 'linear-gradient(180deg, var(--gold), #8B0000, transparent)',
-              }}
+      <main className="tactical-grid">
+        <section className="relative min-h-[921px] flex flex-col items-center justify-center text-center px-4 overflow-hidden border-b border-outline-variant/20">
+          <div className="absolute inset-0 z-0">
+            <img 
+              className="w-full h-full object-cover opacity-30 grayscale contrast-125" 
+              alt="Background" 
+              src="/images/landing-bg.jpg" 
             />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-              {TIMELINE.map((item, i) => (
-                <div key={i} style={{ display: 'flex', gap: 32, alignItems: 'flex-start' }}>
-                  <div style={{ minWidth: 56, textAlign: 'right' }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold)', whiteSpace: 'nowrap' }}>
-                      {item.time}
-                    </span>
-                  </div>
-                  {/* Dot */}
-                  <div
-                    style={{
-                      width: 14,
-                      height: 14,
-                      borderRadius: '50%',
-                      background: i === 2 ? 'var(--gold)' : 'var(--red-dark)',
-                      border: '2px solid var(--gold)',
-                      marginTop: 2,
-                      flexShrink: 0,
-                      boxShadow: i === 2 ? '0 0 12px rgba(255,215,0,0.5)' : 'none',
-                    }}
-                  />
-                  <div>
-                    <h4 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
-                      {item.title}
-                    </h4>
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>{item.desc}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-surface/80"></div>
+          </div>
+          
+          <div className="relative z-10 max-w-5xl">
+            <div className="inline-block border border-secondary text-secondary px-4 py-1 mb-6 font-label uppercase tracking-[0.3em] text-xs">
+              Terminal Access: Authorized
+            </div>
+            <h1 className="text-7xl md:text-9xl font-headline font-black text-primary tracking-tighter mb-4 filter drop-shadow-[0_0_20px_rgba(255,85,64,0.4)]">
+              ESPIONAGE
+            </h1>
+            <p className="text-xl md:text-3xl font-headline font-light text-on-surface uppercase tracking-[0.5em] mb-12">
+              <i>DECRYPT. DEPLOY. DOMINATE.</i>
+            </p>
+            <div className="flex flex-wrap justify-center gap-6">
+              <Link href="/register" className="px-10 py-4 bg-primary text-on-primary font-headline font-bold uppercase tracking-widest text-lg glow-red hover:bg-primary-container transition-all">
+                Join the Mission
+              </Link>
+              <Link href="/login" className="px-10 py-4 border border-outline-variant text-on-surface font-headline font-bold uppercase tracking-widest text-lg backdrop-blur-sm bg-white/5">
+                LOGIN
+              </Link>
             </div>
           </div>
-        </div>
-      </section>
+          
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+            <span className="font-label text-[10px] uppercase tracking-widest text-secondary">Decrypting Data</span>
+            <div className="w-px h-12 bg-gradient-to-b from-secondary to-transparent"></div>
+          </div>
+        </section>
 
-      <section style={{ padding: '100px 20px', textAlign: 'center', position: 'relative', background: 'radial-gradient(circle at center, #300000 0%, #100000 60%, var(--bg-dark) 100%)', borderTop: '1px solid rgba(255,215,0,0.1)' }}>
-        {/* Decorative carpet strips */}
-        <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 4, background: 'linear-gradient(180deg, transparent, var(--gold), #8B0000, transparent)' }} />
-        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: 4, background: 'linear-gradient(180deg, transparent, var(--gold), #8B0000, transparent)' }} />
-        <div style={{ maxWidth: 700, margin: '0 auto' }}>
-          <h2 className="font-display" style={{ fontSize: 'clamp(32px, 5vw, 60px)', fontWeight: 900, marginBottom: 20 }}>
-            Your Number <span className="text-gold-gradient">Awaits</span>
+        <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto" id="mission">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div className="relative p-8 bg-surface-container-lowest border border-outline-variant/20">
+              <div className="bracket-tl"></div><div className="bracket-br"></div>
+              <h2 className="font-headline text-4xl font-bold text-primary uppercase tracking-tighter mb-8">Mission Briefing</h2>
+              <div className="space-y-6 text-on-surface-variant font-body leading-relaxed text-lg">
+                <p>Welcome, Agent. You are entering a theatre of digital warfare where code is the only currency and logic is your primary weapon.</p>
+                <p><span className="text-secondary font-bold uppercase">The Objective:</span> Dhurandhar is a high-stakes technical competition designed to push your programming prowess to the brink.</p>
+                <p>Navigate through a series of encrypted challenges involving advanced debugging, complex algorithms, and rapid-fire problem solving. Every keystroke is monitored.</p>
+                <div className="p-4 bg-surface-container-high border-l-4 border-secondary">
+                  <span className="text-secondary font-headline font-bold block mb-1">REAL-TIME SURVEILLANCE:</span>
+                  Agents will earn points on a <span className="text-on-surface">Live Leaderboard</span>. Speed and precision are non-negotiable.
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-surface-container-high p-6 flex flex-col gap-4 border border-outline-variant/10">
+                <span className="material-symbols-outlined text-primary text-4xl">terminal</span>
+                <h3 className="font-headline font-bold uppercase text-sm tracking-widest">Logic &amp; Code</h3>
+              </div>
+              <div className="bg-surface-container-high p-6 flex flex-col gap-4 border border-outline-variant/10">
+                <span className="material-symbols-outlined text-secondary text-4xl">bug_report</span>
+                <h3 className="font-headline font-bold uppercase text-sm tracking-widest">Debug Protocol</h3>
+              </div>
+              <div className="bg-surface-container-high p-6 flex flex-col gap-4 border border-outline-variant/10">
+                <span className="material-symbols-outlined text-primary text-4xl">vpn_key</span>
+                <h3 className="font-headline font-bold uppercase text-sm tracking-widest">Decryption</h3>
+              </div>
+              <div className="bg-surface-container-high p-6 flex flex-col gap-4 border border-outline-variant/10">
+                <span className="material-symbols-outlined text-secondary text-4xl">leaderboard</span>
+                <h3 className="font-headline font-bold uppercase text-sm tracking-widest">Live Intel</h3>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-24 bg-surface-container-lowest border-y border-outline-variant/20 relative overflow-hidden" id="operations">
+          <div className="absolute right-0 top-0 opacity-5 font-black text-[20rem] font-headline select-none pointer-events-none">09:00</div>
+          <div className="max-w-7xl mx-auto px-6 md:px-12">
+            <h2 className="font-headline text-5xl font-black text-on-surface uppercase tracking-tighter mb-16 text-center">Operations Schedule</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-px bg-outline-variant/20">
+              <div className="bg-surface p-8 group hover:bg-surface-container-high transition-all">
+                <div className="text-secondary font-headline font-bold text-2xl mb-4">09:00 AM</div>
+                <h4 className="font-headline font-bold text-lg text-primary uppercase mb-2">Mission Briefing</h4>
+                <p className="text-sm text-on-surface-variant leading-relaxed">Opening Ceremony &amp; Student Check-In. Authentication of all agents required.</p>
+              </div>
+              <div className="bg-surface p-8 group hover:bg-surface-container-high transition-all">
+                <div className="text-secondary font-headline font-bold text-2xl mb-4">11:00 AM</div>
+                <h4 className="font-headline font-bold text-lg text-primary uppercase mb-2">Round 1 – Bug Breach</h4>
+                <p className="text-sm text-on-surface-variant leading-relaxed">MCQ Assessment. 45 Minutes of high-intensity debugging logic.</p>
+              </div>
+              <div className="bg-surface p-8 group hover:bg-surface-container-high transition-all">
+                <div className="text-secondary font-headline font-bold text-2xl mb-4">12:00 PM</div>
+                <h4 className="font-headline font-bold text-lg text-primary uppercase mb-2">Bonus – Code Charades</h4>
+                <p className="text-sm text-on-surface-variant leading-relaxed">A physical-technical hybrid game for extra clearance points.</p>
+              </div>
+              <div className="bg-surface p-8 group hover:bg-surface-container-high transition-all">
+                <div className="text-secondary font-headline font-bold text-2xl mb-4">01:00 PM</div>
+                <h4 className="font-headline font-bold text-lg text-primary uppercase mb-2">Intelligence Intermission</h4>
+                <p className="text-sm text-on-surface-variant leading-relaxed">Lunch Break. Reviewing preliminary leaderboard standings.</p>
+              </div>
+              <div className="bg-surface p-8 group hover:bg-surface-container-high transition-all">
+                <div className="text-secondary font-headline font-bold text-2xl mb-4">02:00 PM</div>
+                <h4 className="font-headline font-bold text-lg text-primary uppercase mb-2">Round 2 – Operation Blackout</h4>
+                <p className="text-sm text-on-surface-variant leading-relaxed">The Core Challenge. 90 minutes of intensive Code Decryption.</p>
+              </div>
+              <div className="bg-surface p-8 group hover:bg-surface-container-high transition-all">
+                <div className="text-secondary font-headline font-bold text-2xl mb-4">03:30 PM</div>
+                <h4 className="font-headline font-bold text-lg text-primary uppercase mb-2">Bonus – Decode the Message</h4>
+                <p className="text-sm text-on-surface-variant leading-relaxed">Final opportunity for signal encryption points.</p>
+              </div>
+              <div className="bg-surface p-8 lg:col-span-2 flex items-center justify-between border-t border-outline-variant/20 md:border-t-0">
+                <div>
+                  <div className="text-secondary font-headline font-bold text-2xl mb-4">CLOSING</div>
+                  <h4 className="font-headline font-bold text-3xl text-primary uppercase mb-2">Celebration Gala</h4>
+                  <p className="text-on-surface-variant">Prize Distribution and closing ceremony.</p>
+                </div>
+                <span className="material-symbols-outlined text-secondary text-6xl hidden sm:block">celebration</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto" id="intelligence">
+          <h2 className="font-headline text-4xl font-bold text-on-surface uppercase tracking-[0.2em] mb-12 flex items-center gap-4">
+            <span className="w-12 h-px bg-primary"></span> Intel Channels
           </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: 18, marginBottom: 40, lineHeight: 1.7 }}>
-            Step onto the red carpet. Solve the questions. Claim your glory.
-            <br />The spotlight is ready — are you?
-          </p>
-          <Link href="/register">
-            <button
-              className="btn-red animate-glow"
-              style={{ padding: '20px 64px', fontSize: 20, borderRadius: 12, letterSpacing: 1 }}
-            >
-              <span>🎟️ Register Now — ₹50/member</span>
-            </button>
-          </Link>
-        </div>
-      </section>
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="bg-surface-container-low border border-outline-variant/20 p-8 relative group overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 font-headline text-outline-variant/20 text-6xl font-black">01</div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-6">
+                  <span className="material-symbols-outlined text-primary">security</span>
+                  <span className="text-primary font-headline font-bold tracking-widest text-sm uppercase">Priority Level: Medium</span>
+                </div>
+                <h3 className="text-3xl font-headline font-bold text-on-surface mb-6 uppercase">Round 1: Bug Breach</h3>
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-start gap-3">
+                    <span className="material-symbols-outlined text-secondary text-sm mt-1">arrow_forward</span>
+                    <span className="text-on-surface-variant">30 Multiple Choice Intelligence Questions</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="material-symbols-outlined text-secondary text-sm mt-1">arrow_forward</span>
+                    <span className="text-on-surface-variant">Core programming basics &amp; syntax patterns</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="material-symbols-outlined text-secondary text-sm mt-1">arrow_forward</span>
+                    <span className="text-on-surface-variant">Advanced logical reasoning &amp; sequence analysis</span>
+                  </li>
+                </ul>
+                <div className="pt-6 border-t border-outline-variant/10 text-xs font-label uppercase tracking-widest text-secondary">
+                  Duration: 45 Minutes // Format: Terminal MCQ
+                </div>
+              </div>
+            </div>
+            <div className="bg-surface-container-low border border-outline-variant/20 p-8 relative group overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 font-headline text-outline-variant/20 text-6xl font-black">02</div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-6">
+                  <span className="material-symbols-outlined text-red-600" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
+                  <span className="text-red-600 font-headline font-bold tracking-widest text-sm uppercase">Priority Level: Critical</span>
+                </div>
+                <h3 className="text-3xl font-headline font-bold text-on-surface mb-6 uppercase">Round 2: Operation Blackout</h3>
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-start gap-3">
+                    <span className="material-symbols-outlined text-secondary text-sm mt-1">arrow_forward</span>
+                    <span className="text-on-surface-variant">5 Complex Coding Intelligence Problems</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="material-symbols-outlined text-secondary text-sm mt-1">arrow_forward</span>
+                    <span className="text-on-surface-variant">Data structures, algorithms &amp; tactical efficiency</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="material-symbols-outlined text-secondary text-sm mt-1">arrow_forward</span>
+                    <span className="text-on-surface-variant">Scenario-based spy-themed technical challenges</span>
+                  </li>
+                </ul>
+                <div className="pt-6 border-t border-outline-variant/10 text-xs font-label uppercase tracking-widest text-red-600">
+                  Duration: 90 Minutes // Format: Full Access IDE
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
-      {/* Footer */}
-      <footer
-        style={{
-          borderTop: '1px solid rgba(255,215,0,0.1)',
-          padding: '32px 24px',
-          textAlign: 'center',
-        }}
-      >
-        <p className="font-display" style={{ fontSize: 20, color: 'var(--gold)', marginBottom: 8, letterSpacing: 2 }}>
-          HOUSIE OF FAME
-        </p>
-        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-          Organized by <strong style={{ color: 'var(--text-primary)' }}>SQAC</strong> • © 2026 Housie of Fame
-          <br /><span style={{ opacity: 0.5, marginTop: 4, display: 'block' }}>All rights reserved for superstars.</span>
-        </p>
+        <section className="py-24 px-6 md:px-12 max-w-4xl mx-auto" id="rules">
+          <div className="bg-surface-container border-2 border-outline-variant/20 p-12 relative">
+            <div className="absolute -top-6 left-1/2 -translate-x-1/2 px-8 py-2 bg-red-600 text-on-primary font-headline font-black uppercase tracking-[0.4em] shadow-xl">
+              CLASSIFIED
+            </div>
+            <h2 className="font-headline text-3xl font-bold text-center mb-12 uppercase tracking-widest text-on-surface">Engagement Protocols</h2>
+            <div className="space-y-8">
+              <div className="flex gap-6">
+                <span className="text-secondary font-headline font-bold text-xl">01</span>
+                <div>
+                  <h4 className="font-headline font-bold uppercase text-primary mb-2">Platform Exclusive</h4>
+                  <p className="text-on-surface-variant text-sm">All operations must be executed strictly on the official ESPIONAGE intelligence platform.</p>
+                </div>
+              </div>
+              <div className="flex gap-6">
+                <span className="text-secondary font-headline font-bold text-xl">02</span>
+                <div>
+                  <h4 className="font-headline font-bold uppercase text-primary mb-2">No Signal Leakage</h4>
+                  <p className="text-on-surface-variant text-sm">Any form of malpractice, including external aid or unauthorized communication, results in immediate extraction (disqualification).</p>
+                </div>
+              </div>
+              <div className="flex gap-6">
+                <span className="text-secondary font-headline font-bold text-xl">03</span>
+                <div>
+                  <h4 className="font-headline font-bold uppercase text-primary mb-2">Temporal Constraints</h4>
+                  <p className="text-on-surface-variant text-sm">Submissions are timer-based. The terminal automatically locks upon expiration of the allocated briefing time.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-16 px-6 bg-surface">
+          <div className="max-w-7xl mx-auto border-t border-outline-variant/20 pt-16 grid md:grid-cols-2 gap-12 text-center">
+            <div>
+              <span className="text-secondary font-label uppercase tracking-widest text-xs block mb-2">High Command</span>
+              <h3 className="font-headline text-2xl font-bold text-on-surface uppercase">Dr. Arun A</h3>
+            </div>
+            <div>
+              <span className="text-secondary font-label uppercase tracking-widest text-xs block mb-2">Operations Lead</span>
+              <h3 className="font-headline text-2xl font-bold text-on-surface uppercase">Gauri Kishor</h3>
+            </div>
+            <div>
+              <span className="text-secondary font-label uppercase tracking-widest text-xs block mb-2">Co-Operations Lead</span>
+              <h3 className="font-headline text-2xl font-bold text-on-surface uppercase">Drishti Yadav</h3>
+            </div>
+            <div>
+              <span className="text-secondary font-label uppercase tracking-widest text-xs block mb-2">TECH OPS LEAD</span>
+              <h3 className="font-headline text-2xl font-bold text-on-surface uppercase">Shaurya Ojha</h3>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="w-full px-8 py-12 flex flex-col items-center gap-6 border-t border-white/5 bg-[#0e0e0e]">
+        <div className="text-lg font-bold text-red-600 font-headline uppercase tracking-tighter">ESPIONAGE</div>
+        
+        <div className="font-body text-[10px] uppercase tracking-[0.2em] text-gray-500 text-center">
+          © 2026 CLASSIFIED DIRECTIVE // SRM UNIVERSITY // NWC ASSOCIATION // DBUG LABS
+        </div>
       </footer>
-    </div>
+    </>
   );
 }

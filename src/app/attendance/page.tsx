@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
+import Link from 'next/link';
 
 export default function AttendancePage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -11,7 +12,6 @@ export default function AttendancePage() {
   const [stats, setStats] = useState({ checkedIn: 0, totalPaid: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // To prevent double scans in quick succession
   const lastScannedRef = useRef<string>('');
   
   const fetchStats = async () => {
@@ -29,9 +29,8 @@ export default function AttendancePage() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchStats();
-      const interval = setInterval(fetchStats, 10000); // refresh every 10s
+      const interval = setInterval(fetchStats, 10000);
       
-      // Initialize Scanner
       const scanner = new Html5QrcodeScanner("reader", { 
         fps: 10, 
         qrbox: { width: 250, height: 250 },
@@ -57,13 +56,13 @@ export default function AttendancePage() {
     if (res.ok) {
       setIsAuthenticated(true);
     } else {
-      alert('Incorrect password');
+      alert('Incorrect access code');
     }
   }
 
   const markAttendance = async (teamId: string) => {
     if (isProcessing) return;
-    if (lastScannedRef.current === teamId) return; // Prevent double trigger
+    if (lastScannedRef.current === teamId) return;
     
     setIsProcessing(true);
     lastScannedRef.current = teamId;
@@ -81,13 +80,12 @@ export default function AttendancePage() {
       if (res.ok) {
         setScanResult({
           type: 'success',
-          message: `Check-in Successful!`,
+          message: `CHECK-IN SUCCESSFUL`,
           teamInfo: data
         });
-        fetchStats(); // Update counters immediately
+        fetchStats();
         
-        // Play success beep
-        const audio = new Audio('/success-beep.mp3'); // Optional placeholder
+        const audio = new Audio('/success-beep.mp3');
         audio.play().catch(()=>{}).then(() => {});
 
       } else if (data.alreadyCheckedIn) {
@@ -98,143 +96,188 @@ export default function AttendancePage() {
       } else {
         setScanResult({
           type: 'error',
-          message: data.error || 'Failed to mark present'
+          message: data.error || 'VERIFICATION FAILED'
         });
       }
     } catch (err) {
-      setScanResult({ type: 'error', message: 'Network error occurred' });
+      setScanResult({ type: 'error', message: 'NETWORK ERROR' });
     } finally {
       setIsProcessing(false);
-      // Reset scan memory after 3 seconds so we can scan again if needed
       setTimeout(() => { lastScannedRef.current = ''; }, 3000);
     }
   };
 
   function onScanSuccess(decodedText: string) {
-    // Expected format: HOU-XXX
     if (decodedText.startsWith('HOU-')) {
       markAttendance(decodedText);
     }
   }
 
-  function onScanFailure(error: any) {
-    // handle scan failure, usually better to ignore and keep scanning
-  }
+  function onScanFailure(error: any) {}
+
+  const wrapperClass = "bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-hidden terminal-bg relative min-h-screen flex items-center justify-center p-6";
 
   if (!isAuthenticated) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <form onSubmit={login} className="glass-card" style={{ padding: 40, width: 320, textAlign: 'center' }}>
-          <h2 style={{ color: 'var(--gold)', marginBottom: 20 }}>Organizer Access</h2>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="Attendance Password"
-            style={{ width: '100%', padding: 12, borderRadius: 8, background: '#111', border: '1px solid #333', color: '#fff', marginBottom: 20 }}
-          />
-          <button className="btn-red" style={{ width: '100%', padding: 12 }}>Unlock System</button>
-        </form>
+      <div className={wrapperClass}>
+        <div className="fixed inset-0 scanline opacity-10 pointer-events-none z-0"></div>
+        <div className="relative z-10 w-full max-w-sm">
+          <form onSubmit={login} className="bg-surface-container-low p-8 relative border border-outline-variant/30 shadow-[0_0_30px_rgba(255,85,64,0.05)] text-center">
+            <div className="absolute top-0 right-0 p-3 font-headline text-[8px] text-outline-variant uppercase tracking-widest">
+              Ref: ORG-AUTH
+            </div>
+            
+            <span className="material-symbols-outlined text-primary text-5xl mb-4">admin_panel_settings</span>
+            <h2 className="font-headline text-xl font-black uppercase tracking-widest text-on-surface mb-2">
+              ORGANIZER ACCESS
+            </h2>
+            <div className="h-px w-1/2 mx-auto bg-gradient-to-r from-transparent via-primary/50 to-transparent mt-4 mb-8"></div>
+            
+            <div className="group mb-6 text-left">
+              <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Clearance Code</label>
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full bg-surface-container-highest border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40"
+              />
+            </div>
+            
+            <button className="w-full py-4 bg-primary text-on-primary font-headline font-black text-xs tracking-[0.2em] uppercase transition-all hover:bg-primary-container active:scale-[0.98] shadow-[0_0_20px_rgba(255,85,64,0.2)] flex justify-center items-center gap-2">
+              <span className="material-symbols-outlined text-sm">lock_open</span>
+              UNLOCK SYSTEM
+            </button>
+          </form>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-dark)', padding: 20, color: 'var(--text-primary)' }}>
-      <div style={{ maxWidth: 500, margin: '0 auto' }}>
+    <div className="bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-hidden terminal-bg relative min-h-screen pt-12 pb-24 px-4">
+      <div className="fixed inset-0 scanline opacity-10 pointer-events-none z-0"></div>
+
+      <nav className="flex justify-between items-center w-full px-6 py-4 fixed top-0 z-50 bg-[#0e0e0e] border-b border-outline-variant/30 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+        <Link href="/" className="text-xl font-black text-primary tracking-tighter font-headline flex items-center gap-2">
+          <span className="material-symbols-outlined">qr_code_scanner</span>
+          ESPIONAGE // ORG_SCANNER
+        </Link>
+        <div className="hidden md:flex gap-6 items-center">
+          <div className="font-headline text-[10px] uppercase tracking-widest text-secondary flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            SYSTEM ONLINE
+          </div>
+        </div>
+      </nav>
+
+      <div className="relative z-10 w-full max-w-xl mx-auto mt-12">
         
         {/* Header & Stats */}
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <h1 style={{ color: 'var(--gold)', fontSize: 24, marginBottom: 8 }}>Entry Verification</h1>
-          <div style={{ background: 'rgba(255,215,0,0.1)', border: '1px solid rgba(255,215,0,0.3)', borderRadius: 12, padding: '12px 20px', display: 'inline-block' }}>
-            <span style={{ fontSize: 13, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: 1 }}>Live Check-ins</span>
-            <div style={{ fontSize: 28, fontWeight: 'bold' }}>{stats.checkedIn} <span style={{ color: 'var(--text-muted)', fontSize: 18 }}>/ {stats.totalPaid}</span></div>
+        <div className="text-center mb-8">
+          <h1 className="font-headline text-3xl font-black uppercase text-on-surface tracking-widest mb-4">
+            ENTRY <span className="text-primary glow-red">VERIFICATION</span>
+          </h1>
+          <div className="bg-primary/5 border border-primary/20 p-4 inline-block shadow-[0_0_15px_rgba(255,85,64,0.1)]">
+            <span className="block font-headline text-[10px] text-primary uppercase tracking-[0.2em] mb-1">Live Check-ins</span>
+            <div className="font-headline text-3xl font-black text-on-surface tracking-widest">
+              {stats.checkedIn} <span className="text-on-surface-variant text-xl">/ {stats.totalPaid}</span>
+            </div>
           </div>
         </div>
 
         {/* QR Scanner */}
-        <div style={{ background: '#111', borderRadius: 16, overflow: 'hidden', border: '1px solid #333', marginBottom: 24, padding: 16 }}>
+        <div className="bg-surface-container-low border border-outline-variant/30 p-2 mb-8 shadow-2xl relative">
+          <div className="absolute top-0 right-0 p-2 font-headline text-[8px] text-outline-variant uppercase tracking-widest z-20 bg-surface-container-low">
+            OPTICAL-SENSOR_01
+          </div>
           <style>{`
-            #reader { border: none !important; }
+            #reader { border: none !important; width: 100% !important; background: transparent !important; }
             #reader button {
-              background: #8B0000 !important;
-              color: white !important;
-              border: none !important;
-              padding: 12px 24px !important;
-              font-size: 16px !important;
-              font-weight: bold !important;
-              border-radius: 8px !important;
+              background: var(--color-primary-container) !important;
+              color: var(--color-on-primary-container) !important;
+              border: 1px solid var(--color-outline) !important;
+              padding: 10px 20px !important;
+              font-family: 'Space Grotesk', sans-serif !important;
+              font-size: 12px !important;
+              letter-spacing: 0.1em !important;
+              text-transform: uppercase !important;
+              font-weight: 700 !important;
+              border-radius: 0 !important;
               margin: 10px !important;
               cursor: pointer !important;
-              transition: all 0.2s;
+              transition: all 0.2s !important;
             }
             #reader button:hover {
-              background: #a30000 !important;
-              transform: translateY(-2px);
+              background: var(--color-primary) !important;
+              color: var(--color-on-primary) !important;
             }
             #reader select {
-              padding: 10px 14px !important;
-              border-radius: 8px !important;
-              background: #222 !important;
-              color: white !important;
-              border: 1px solid #444 !important;
-              font-size: 14px !important;
+              padding: 8px 12px !important;
+              border-radius: 0 !important;
+              background: var(--color-surface-container-highest) !important;
+              color: var(--color-on-surface) !important;
+              border: 1px solid var(--color-outline-variant) !important;
+              font-family: 'Space Grotesk', sans-serif !important;
+              font-size: 12px !important;
+              letter-spacing: 0.05em !important;
               margin-bottom: 12px !important;
-              width: 100% !important;
-              max-width: 300px !important;
               outline: none !important;
             }
-            #reader__dashboard_section_csr span { color: var(--gold) !important; font-size: 14px !important; }
-            #reader a { color: var(--gold) !important; text-decoration: none !important; }
-            #reader__scan_region { background: #000 !important; margin-top: 10px !important; border-radius: 8px !important; overflow: hidden !important; }
+            #reader__dashboard_section_csr span { color: var(--color-secondary) !important; font-family: 'Space Grotesk', sans-serif !important; font-size: 12px !important; letter-spacing: 0.1em !important; }
+            #reader a { color: var(--color-primary) !important; text-decoration: none !important; }
+            #reader__scan_region { background: #050505 !important; margin-top: 10px !important; border-radius: 0 !important; overflow: hidden !important; border: 1px solid var(--color-outline-variant) !important; }
+            #reader__dashboard_section_swaplink { text-decoration: none !important; font-family: 'Space Grotesk', sans-serif !important; font-size: 10px !important; letter-spacing: 0.1em !important; opacity: 0.7 !important; margin-top: 10px !important; display: inline-block !important; }
           `}</style>
-          <div id="reader"></div>
+          <div id="reader" className="w-full"></div>
         </div>
 
         {/* Manual Entry Fallback */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
+        <div className="flex gap-4 mb-8">
           <input 
             type="text" 
-            placeholder="Manual Team ID (HOU-001)" 
+            placeholder="MANUAL ID (HOU-001)" 
             value={manualTeamId}
             onChange={(e) => setManualTeamId(e.target.value.toUpperCase())}
-            style={{ flex: 1, padding: '12px 16px', borderRadius: 8, background: '#111', border: '1px solid #333', color: '#fff', outline: 'none' }}
+            className="flex-1 bg-surface-container-highest border border-outline-variant/50 focus:border-primary focus:ring-0 text-on-surface font-headline tracking-widest text-sm px-4 py-3 placeholder:text-outline-variant/40 outline-none uppercase"
           />
           <button 
             onClick={() => manualTeamId && markAttendance(manualTeamId)}
-            className="btn-red" 
-            style={{ padding: '0 20px', borderRadius: 8 }}
+            className="px-8 bg-primary text-on-primary font-headline font-bold text-xs tracking-widest uppercase hover:bg-primary-container active:scale-[0.98] transition-all disabled:opacity-50 border border-primary/50"
             disabled={isProcessing}
           >
-            {isProcessing ? '...' : 'Verify'}
+            {isProcessing ? 'SCANNING...' : 'VERIFY'}
           </button>
         </div>
 
         {/* Scan Result Notification */}
         {scanResult && (
-          <div style={{ 
-            padding: 20, 
-            borderRadius: 12, 
-            background: scanResult.type === 'success' ? 'rgba(34, 197, 94, 0.15)' : scanResult.type === 'warning' ? 'rgba(234, 179, 8, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-            border: `1px solid ${scanResult.type === 'success' ? '#22c55e' : scanResult.type === 'warning' ? '#eab308' : '#ef4444'}`,
-            animation: 'fadeInUp 0.3s ease'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: scanResult.teamInfo ? 12 : 0 }}>
-              <span style={{ fontSize: 24 }}>
-                {scanResult.type === 'success' ? '✅' : scanResult.type === 'warning' ? '⚠️' : '❌'}
-              </span>
-              <h3 style={{ fontSize: 18, color: scanResult.type === 'success' ? '#22c55e' : scanResult.type === 'warning' ? '#eab308' : '#ef4444', margin: 0 }}>
-                {scanResult.message}
-              </h3>
-            </div>
+          <div className={`p-6 border relative overflow-hidden animate-[fadeInUp_0.3s_ease] ${scanResult.type === 'success' ? 'bg-green-500/10 border-green-500/30' : scanResult.type === 'warning' ? 'bg-orange-500/10 border-orange-500/30' : 'bg-error/10 border-error/30'}`}>
+            {/* Background absolute tint */}
+            <div className={`absolute inset-0 opacity-10 ${scanResult.type === 'success' ? 'bg-green-500' : scanResult.type === 'warning' ? 'bg-orange-500' : 'bg-error'}`}></div>
             
-            {scanResult.teamInfo && (
-              <div style={{ padding: '12px 0 0 0', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--gold)' }}>Team ID: {scanResult.teamInfo.teamId}</p>
-                <p style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 'bold' }}>{scanResult.teamInfo.teamName}</p>
-                <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)' }}>Leader: {scanResult.teamInfo.leaderName} • Members: {scanResult.teamInfo.membersCount}</p>
+            <div className="relative z-10">
+              <div className="flex items-center gap-4 mb-4">
+                <span className={`material-symbols-outlined text-4xl ${scanResult.type === 'success' ? 'text-green-500' : scanResult.type === 'warning' ? 'text-orange-500' : 'text-error glow-red'}`}>
+                  {scanResult.type === 'success' ? 'check_circle' : scanResult.type === 'warning' ? 'warning' : 'cancel'}
+                </span>
+                <h3 className={`font-headline text-xl font-black tracking-widest uppercase m-0 ${scanResult.type === 'success' ? 'text-green-500' : scanResult.type === 'warning' ? 'text-orange-500' : 'text-error'}`}>
+                  {scanResult.message}
+                </h3>
               </div>
-            )}
+              
+              {scanResult.teamInfo && (
+                <div className="pt-4 border-t border-white/10 mt-2">
+                  <p className="font-headline text-[10px] tracking-widest uppercase text-secondary mb-1">TEAM ID</p>
+                  <p className="font-headline text-2xl font-black text-on-surface tracking-widest mb-4">{scanResult.teamInfo.teamId}</p>
+                  
+                  <div className="bg-surface-container-highest border border-outline-variant/20 p-4">
+                    <p className="font-body text-on-surface font-bold text-lg mb-1">{scanResult.teamInfo.teamName}</p>
+                    <p className="font-mono text-xs text-secondary mt-2 border-t border-outline-variant/10 pt-2"><span className="text-on-surface-variant">COMMANDER:</span> {scanResult.teamInfo.leaderName} <span className="mx-2 text-outline-variant">|</span> <span className="text-on-surface-variant">SQUAD SIZE:</span> {scanResult.teamInfo.membersCount}</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

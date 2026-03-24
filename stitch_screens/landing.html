@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ESPIONAGE: Dhurandhar – The Spy Intelligence Challenge</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-error-container": "#ffdad6",
+                        "surface-dim": "#131313",
+                        "tertiary-fixed-dim": "#c8c6c6",
+                        "on-secondary-fixed-variant": "#604100",
+                        "surface-variant": "#353534",
+                        "on-background": "#e5e2e1",
+                        "primary-fixed": "#ffdad4",
+                        "primary": "#ffb4a8",
+                        "background": "#131313",
+                        "on-tertiary-fixed": "#1b1c1c",
+                        "on-tertiary-fixed-variant": "#474747",
+                        "tertiary-container": "#919090",
+                        "surface-tint": "#ffb4a8",
+                        "on-tertiary": "#303030",
+                        "on-tertiary-container": "#292a2a",
+                        "surface-bright": "#3a3939",
+                        "on-primary-fixed-variant": "#930100",
+                        "on-surface": "#e5e2e1",
+                        "primary-container": "#ff5540",
+                        "inverse-surface": "#e5e2e1",
+                        "surface-container-high": "#2a2a2a",
+                        "tertiary-fixed": "#e4e2e1",
+                        "surface-container": "#201f1f",
+                        "on-secondary-fixed": "#281900",
+                        "surface": "#131313",
+                        "tertiary": "#c8c6c6",
+                        "secondary-container": "#feb300",
+                        "on-secondary": "#432c00",
+                        "secondary": "#ffd799",
+                        "inverse-primary": "#c00100",
+                        "on-primary-container": "#5c0000",
+                        "primary-fixed-dim": "#ffb4a8",
+                        "outline": "#b18780",
+                        "outline-variant": "#603e39",
+                        "surface-container-highest": "#353534",
+                        "on-primary": "#690100",
+                        "on-surface-variant": "#ebbbb4",
+                        "surface-container-lowest": "#0e0e0e",
+                        "inverse-on-surface": "#313030",
+                        "on-primary-fixed": "#410000",
+                        "secondary-fixed-dim": "#ffba38",
+                        "on-secondary-container": "#6a4800",
+                        "error-container": "#93000a",
+                        "secondary-fixed": "#ffdeac",
+                        "error": "#ffb4ab",
+                        "surface-container-low": "#1c1b1b",
+                        "on-error": "#690005"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Space Grotesk"]
+                    },
+                    borderRadius: { "DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        .scanlines {
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+        .tactical-grid {
+            background-image: radial-gradient(rgba(255, 180, 168, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        .glow-red {
+            box-shadow: 0 0 15px rgba(255, 85, 64, 0.2);
+        }
+        .bracket-tl { border-top: 2px solid #ffd799; border-left: 2px solid #ffd799; width: 12px; height: 12px; position: absolute; top: -2px; left: -2px; }
+        .bracket-br { border-bottom: 2px solid #ffd799; border-right: 2px solid #ffd799; width: 12px; height: 12px; position: absolute; bottom: -2px; right: -2px; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container">
+<!-- HUD Overlay -->
+<div class="fixed inset-0 scanlines z-50 pointer-events-none opacity-20"></div>
+<!-- Navigation -->
+<nav class="bg-[#131313] border-b border-white/10 flex justify-between items-center w-full px-6 py-4 sticky top-0 z-40">
+<div class="text-2xl font-black text-red-600 tracking-tighter uppercase font-headline">ESPIONAGE</div>
+<div class="hidden md:flex gap-8 items-center font-headline uppercase tracking-widest text-sm">
+<a class="text-red-500 border-b-2 border-red-600 pb-1" href="#mission">Mission Briefing</a>
+<a class="text-gray-400 hover:text-red-400 transition-colors" href="#operations">Operations</a>
+<a class="text-gray-400 hover:text-red-400 transition-colors" href="#intelligence">Intelligence Flow</a>
+<a class="text-gray-400 hover:text-red-400 transition-colors" href="#rules">Rules</a>
+</div>
+<button class="bg-primary text-on-primary px-6 py-2 font-headline uppercase font-bold tracking-widest hover:brightness-125 transition-all active:scale-95 glow-red">
+            Join Mission
+        </button>
+</nav>
+<main class="tactical-grid">
+<!-- Hero Section -->
+<section class="relative min-h-[921px] flex flex-col items-center justify-center text-center px-4 overflow-hidden border-b border-outline-variant/20">
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover opacity-30 grayscale contrast-125" data-alt="Dark cyber security terminal with glowing red digital code and futuristic interface elements in a high-tech spy surveillance room" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGYHyb8__Hoc68WAdd0fJj8ITq9ms8WCIqBFS324rAuX3c-z6NGBAuJVVhYQE-cBzjplwZ5twkiBFMCHjBlmPOI0t04w57zHBOE3bqo8Cq_U45UsUEK_H2aGWGA3sf0q94UnBfTcTVnUxrZPg12cY3eI1EiPnMutRIMkoDG2vmwdnfmMYVUbrOMrtTrJ8HVQc7j-1OdGal_Xmv5E_EP-OoClqC0UibjnqDd9_St1NB8pQkecV9m0CWMiXbrBPnrpxMqxeqYqsvGBM"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-surface/80"></div>
+</div>
+<div class="relative z-10 max-w-5xl">
+<div class="inline-block border border-secondary text-secondary px-4 py-1 mb-6 font-label uppercase tracking-[0.3em] text-xs">
+                    Terminal Access: Authorized
+                </div>
+<h1 class="text-7xl md:text-9xl font-headline font-black text-primary tracking-tighter mb-4 filter drop-shadow-[0_0_20px_rgba(255,85,64,0.4)]">
+                    ESPIONAGE
+                </h1>
+<p class="text-xl md:text-3xl font-headline font-light text-on-surface uppercase tracking-[0.5em] mb-12">
+                    Dhurandhar – The Spy Intelligence Challenge
+                </p>
+<div class="flex flex-wrap justify-center gap-6">
+<a class="px-10 py-4 bg-primary text-on-primary font-headline font-bold uppercase tracking-widest text-lg glow-red hover:bg-primary-container transition-all" href="#join">
+                        Join the Mission
+                    </a>
+<div class="px-10 py-4 border border-outline-variant text-on-surface font-headline font-bold uppercase tracking-widest text-lg backdrop-blur-sm bg-white/5">
+                        Status: Incoming
+                    </div>
+</div>
+</div>
+<!-- Scroll Indicator -->
+<div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+<span class="font-label text-[10px] uppercase tracking-widest text-secondary">Decrypting Data</span>
+<div class="w-px h-12 bg-gradient-to-b from-secondary to-transparent"></div>
+</div>
+</section>
+<!-- Mission Briefing -->
+<section class="py-24 px-6 md:px-12 max-w-7xl mx-auto" id="mission">
+<div class="grid md:grid-cols-2 gap-16 items-center">
+<div class="relative p-8 bg-surface-container-lowest border border-outline-variant/20">
+<div class="bracket-tl"></div><div class="bracket-br"></div>
+<h2 class="font-headline text-4xl font-bold text-primary uppercase tracking-tighter mb-8">Mission Briefing</h2>
+<div class="space-y-6 text-on-surface-variant font-body leading-relaxed text-lg">
+<p>Welcome, Agent. You are entering a theatre of digital warfare where code is the only currency and logic is your primary weapon.</p>
+<p><span class="text-secondary font-bold uppercase">The Objective:</span> Dhurandhar is a high-stakes technical competition designed to push your programming prowess to the brink.</p>
+<p>Navigate through a series of encrypted challenges involving advanced debugging, complex algorithms, and rapid-fire problem solving. Every keystroke is monitored.</p>
+<div class="p-4 bg-surface-container-high border-l-4 border-secondary">
+<span class="text-secondary font-headline font-bold block mb-1">REAL-TIME SURVEILLANCE:</span>
+                            Agents will earn points on a <span class="text-on-surface">Live Leaderboard</span>. Speed and precision are non-negotiable.
+                        </div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-high p-6 flex flex-col gap-4 border border-outline-variant/10">
+<span class="material-symbols-outlined text-primary text-4xl">terminal</span>
+<h3 class="font-headline font-bold uppercase text-sm tracking-widest">Logic &amp; Code</h3>
+</div>
+<div class="bg-surface-container-high p-6 flex flex-col gap-4 border border-outline-variant/10 mt-8">
+<span class="material-symbols-outlined text-secondary text-4xl">bug_report</span>
+<h3 class="font-headline font-bold uppercase text-sm tracking-widest">Debug Protocol</h3>
+</div>
+<div class="bg-surface-container-high p-6 flex flex-col gap-4 border border-outline-variant/10 -mt-4">
+<span class="material-symbols-outlined text-primary text-4xl">vpn_key</span>
+<h3 class="font-headline font-bold uppercase text-sm tracking-widest">Decryption</h3>
+</div>
+<div class="bg-surface-container-high p-6 flex flex-col gap-4 border border-outline-variant/10 mt-4">
+<span class="material-symbols-outlined text-secondary text-4xl">leaderboard</span>
+<h3 class="font-headline font-bold uppercase text-sm tracking-widest">Live Intel</h3>
+</div>
+</div>
+</div>
+</section>
+<!-- Operations Schedule -->
+<section class="py-24 bg-surface-container-lowest border-y border-outline-variant/20 relative overflow-hidden" id="operations">
+<div class="absolute right-0 top-0 opacity-5 font-black text-[20rem] font-headline select-none pointer-events-none">09:00</div>
+<div class="max-w-7xl mx-auto px-6 md:px-12">
+<h2 class="font-headline text-5xl font-black text-on-surface uppercase tracking-tighter mb-16 text-center">Operations Schedule</h2>
+<div class="grid md:grid-cols-2 lg:grid-cols-4 gap-px bg-outline-variant/20">
+<!-- Event 1 -->
+<div class="bg-surface p-8 group hover:bg-surface-container-high transition-all">
+<div class="text-secondary font-headline font-bold text-2xl mb-4">09:00 AM</div>
+<h4 class="font-headline font-bold text-lg text-primary uppercase mb-2">Mission Briefing</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">Opening Ceremony &amp; Student Check-In. Authentication of all agents required.</p>
+</div>
+<!-- Event 2 -->
+<div class="bg-surface p-8 group hover:bg-surface-container-high transition-all">
+<div class="text-secondary font-headline font-bold text-2xl mb-4">11:00 AM</div>
+<h4 class="font-headline font-bold text-lg text-primary uppercase mb-2">Round 1 – Bug Breach</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">MCQ Assessment. 30 Minutes of high-intensity debugging logic.</p>
+</div>
+<!-- Event 3 -->
+<div class="bg-surface p-8 group hover:bg-surface-container-high transition-all">
+<div class="text-secondary font-headline font-bold text-2xl mb-4">12:30 PM</div>
+<h4 class="font-headline font-bold text-lg text-primary uppercase mb-2">Bonus – Code Charades</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">A physical-technical hybrid game for extra clearance points.</p>
+</div>
+<!-- Event 4 -->
+<div class="bg-surface p-8 group hover:bg-surface-container-high transition-all">
+<div class="text-secondary font-headline font-bold text-2xl mb-4">01:00 PM</div>
+<h4 class="font-headline font-bold text-lg text-primary uppercase mb-2">Intelligence Intermission</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">Lunch Break. Reviewing preliminary leaderboard standings.</p>
+</div>
+<!-- Event 5 -->
+<div class="bg-surface p-8 group hover:bg-surface-container-high transition-all">
+<div class="text-secondary font-headline font-bold text-2xl mb-4">02:00 PM</div>
+<h4 class="font-headline font-bold text-lg text-primary uppercase mb-2">Round 2 – Operation Blackout</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">The Core Challenge. 90 minutes of intensive Code Decryption.</p>
+</div>
+<!-- Event 6 -->
+<div class="bg-surface p-8 group hover:bg-surface-container-high transition-all">
+<div class="text-secondary font-headline font-bold text-2xl mb-4">03:30 PM</div>
+<h4 class="font-headline font-bold text-lg text-primary uppercase mb-2">Bonus – Decode the Message</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">Final opportunity for signal encryption points.</p>
+</div>
+<!-- Closing -->
+<div class="bg-surface p-8 lg:col-span-2 flex items-center justify-between border-t border-outline-variant/20 md:border-t-0">
+<div>
+<div class="text-secondary font-headline font-bold text-2xl mb-4">CLOSING</div>
+<h4 class="font-headline font-bold text-3xl text-primary uppercase mb-2">Celebration Gala</h4>
+<p class="text-on-surface-variant">Featuring high-energy performances by <span class="text-on-surface font-bold">Shararat &amp; Flipperachi</span>.</p>
+</div>
+<span class="material-symbols-outlined text-secondary text-6xl hidden sm:block">celebration</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Intelligence Rounds -->
+<section class="py-24 px-6 md:px-12 max-w-7xl mx-auto" id="intelligence">
+<h2 class="font-headline text-4xl font-bold text-on-surface uppercase tracking-[0.2em] mb-12 flex items-center gap-4">
+<span class="w-12 h-px bg-primary"></span> Intel Channels
+            </h2>
+<div class="grid md:grid-cols-2 gap-8">
+<!-- Round 1 -->
+<div class="bg-surface-container-low border border-outline-variant/20 p-8 relative group overflow-hidden">
+<div class="absolute top-0 right-0 p-4 font-headline text-outline-variant/20 text-6xl font-black">01</div>
+<div class="relative z-10">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary">security</span>
+<span class="text-primary font-headline font-bold tracking-widest text-sm uppercase">Priority Level: Medium</span>
+</div>
+<h3 class="text-3xl font-headline font-bold text-on-surface mb-6 uppercase">Round 1: Bug Breach</h3>
+<ul class="space-y-4 mb-8">
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary text-sm mt-1">arrow_forward</span>
+<span class="text-on-surface-variant">30 Multiple Choice Intelligence Questions</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary text-sm mt-1">arrow_forward</span>
+<span class="text-on-surface-variant">Core programming basics &amp; syntax patterns</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary text-sm mt-1">arrow_forward</span>
+<span class="text-on-surface-variant">Advanced logical reasoning &amp; sequence analysis</span>
+</li>
+</ul>
+<div class="pt-6 border-t border-outline-variant/10 text-xs font-label uppercase tracking-widest text-secondary">
+                            Duration: 30 Minutes // Format: Terminal MCQ
+                        </div>
+</div>
+</div>
+<!-- Round 2 -->
+<div class="bg-surface-container-low border border-outline-variant/20 p-8 relative group overflow-hidden">
+<div class="absolute top-0 right-0 p-4 font-headline text-outline-variant/20 text-6xl font-black">02</div>
+<div class="relative z-10">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-red-600" style="font-variation-settings: 'FILL' 1;">warning</span>
+<span class="text-red-600 font-headline font-bold tracking-widest text-sm uppercase">Priority Level: Critical</span>
+</div>
+<h3 class="text-3xl font-headline font-bold text-on-surface mb-6 uppercase">Round 2: Operation Blackout</h3>
+<ul class="space-y-4 mb-8">
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary text-sm mt-1">arrow_forward</span>
+<span class="text-on-surface-variant">5 Complex Coding Intelligence Problems</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary text-sm mt-1">arrow_forward</span>
+<span class="text-on-surface-variant">Data structures, algorithms &amp; tactical efficiency</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary text-sm mt-1">arrow_forward</span>
+<span class="text-on-surface-variant">Scenario-based spy-themed technical challenges</span>
+</li>
+</ul>
+<div class="pt-6 border-t border-outline-variant/10 text-xs font-label uppercase tracking-widest text-red-600">
+                            Duration: 90 Minutes // Format: Full Access IDE
+                        </div>
+</div>
+</div>
+</div>
+</section>
+<!-- Leaderboard -->
+<!-- Rules & Protocols -->
+<section class="py-24 px-6 md:px-12 max-w-4xl mx-auto" id="rules">
+<div class="bg-surface-container border-2 border-outline-variant/20 p-12 relative">
+<div class="absolute -top-6 left-1/2 -translate-x-1/2 px-8 py-2 bg-red-600 text-on-primary font-headline font-black uppercase tracking-[0.4em] shadow-xl">
+                    CLASSIFIED
+                </div>
+<h2 class="font-headline text-3xl font-bold text-center mb-12 uppercase tracking-widest text-on-surface">Engagement Protocols</h2>
+<div class="space-y-8">
+<div class="flex gap-6">
+<span class="text-secondary font-headline font-bold text-xl">01</span>
+<div>
+<h4 class="font-headline font-bold uppercase text-primary mb-2">Platform Exclusive</h4>
+<p class="text-on-surface-variant text-sm">All operations must be executed strictly on the official ESPIONAGE intelligence platform.</p>
+</div>
+</div>
+<div class="flex gap-6">
+<span class="text-secondary font-headline font-bold text-xl">02</span>
+<div>
+<h4 class="font-headline font-bold uppercase text-primary mb-2">No Signal Leakage</h4>
+<p class="text-on-surface-variant text-sm">Any form of malpractice, including external aid or unauthorized communication, results in immediate extraction (disqualification).</p>
+</div>
+</div>
+<div class="flex gap-6">
+<span class="text-secondary font-headline font-bold text-xl">03</span>
+<div>
+<h4 class="font-headline font-bold uppercase text-primary mb-2">Temporal Constraints</h4>
+<p class="text-on-surface-variant text-sm">Submissions are timer-based. The terminal automatically locks upon expiration of the allocated briefing time.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Organizers -->
+<section class="py-16 px-6 bg-surface">
+<div class="max-w-7xl mx-auto border-t border-outline-variant/20 pt-16 grid md:grid-cols-2 gap-12 text-center">
+<div>
+<span class="text-secondary font-label uppercase tracking-widest text-xs block mb-2">High Command</span>
+<h3 class="font-headline text-2xl font-bold text-on-surface uppercase">Convener: Dr. Arun A</h3>
+</div>
+<div>
+<span class="text-secondary font-label uppercase tracking-widest text-xs block mb-2">Operations Lead</span>
+<h3 class="font-headline text-2xl font-bold text-on-surface uppercase">Co-convener: Dr. N. Prasath</h3>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full px-8 py-12 flex flex-col items-center gap-6 border-t border-white/5 bg-[#0e0e0e]">
+<div class="text-lg font-bold text-red-600 font-headline uppercase tracking-tighter">ESPIONAGE</div>
+<div class="flex flex-wrap justify-center gap-8 text-[10px] uppercase tracking-[0.2em] font-body text-gray-500">
+<a class="hover:text-red-400 transition-all" href="#">Terms of Engagement</a>
+<a class="hover:text-red-400 transition-all" href="#">Privacy Protocol</a>
+<a class="hover:text-red-400 transition-all" href="#">Signal Encryption</a>
+</div>
+<div class="font-body text-[10px] uppercase tracking-[0.2em] text-gray-500 text-center">
+            © 2024 CLASSIFIED DIRECTIVE // SRM UNIVERSITY // NWS ASSOCIATION // DBUG LABS
+        </div>
+</footer>
+</body></html>

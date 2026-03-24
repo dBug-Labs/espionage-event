@@ -40,7 +40,7 @@ const ParticipantSchema = new Schema<IParticipant>(
     collegeEmail: { type: String, required: true },
     regNo: { type: String, required: true },
     phone: { type: String, required: true },
-    amountPaid: { type: Number, required: true, default: 60 },
+    amountPaid: { type: Number, required: true, default: 70 },
     paymentId: { type: String, required: true },
     paymentStatus: {
       type: String,

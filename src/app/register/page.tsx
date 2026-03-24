@@ -26,7 +26,7 @@ export default function RegisterPage() {
   const [step, setStep] = useState<'form' | 'qr-payment' | 'submitting'>('form');
   const [transactionId, setTransactionId] = useState('');
 
-  const AMOUNT = 60;
+  const AMOUNT = 70;
 
   function validateEmail(e: string) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
@@ -46,7 +46,8 @@ export default function RegisterPage() {
     return Object.keys(errs).length === 0;
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
     if (!validate()) return;
     setStep('qr-payment');
   }
@@ -99,270 +100,263 @@ export default function RegisterPage() {
     }
   }
 
-  const inp = (field: string) => ({
-    width: '100%' as const,
-    background: 'rgba(13,17,23,0.8)',
-    border: `1px solid ${errors[field] ? 'var(--spy-red)' : 'var(--border)'}`,
-    borderRadius: 8,
-    padding: '11px 14px',
-    color: 'var(--text-primary)',
-    fontSize: 14,
-    fontFamily: 'Inter, sans-serif',
-    outline: 'none',
-    transition: 'all 0.3s ease',
-  });
-
-  const lbl = {
-    fontSize: 12,
-    fontWeight: 500 as const,
-    color: 'var(--text-muted)',
-    marginBottom: 5,
-    display: 'block' as const,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase' as const,
-  };
-
-  const errStyle = { color: 'var(--spy-red)', fontSize: 11, marginTop: 3 };
-
-  function focusIn(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
-    e.currentTarget.style.borderColor = 'var(--spy-green)';
-    e.currentTarget.style.boxShadow = '0 0 0 2px rgba(0,255,65,0.08)';
-  }
-  function focusOut(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>, field: string) {
-    e.currentTarget.style.borderColor = errors[field] ? 'var(--spy-red)' : 'rgba(0,255,65,0.12)';
-    e.currentTarget.style.boxShadow = 'none';
-  }
-
-  // Submitting overlay
   if (step === 'submitting') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 24 }}>
-        <div style={{ width: 60, height: 60, border: '4px solid rgba(0,255,65,0.15)', borderTop: '4px solid var(--spy-green)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <p className="font-display" style={{ fontSize: 22, color: 'var(--spy-green)' }}>
-          Processing Enrollment…
+      <div className="min-h-screen bg-surface flex items-center justify-center flex-col gap-6 terminal-bg">
+        <div className="fixed inset-0 scanline opacity-20 pointer-events-none"></div>
+        <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+        <p className="font-headline text-2xl text-primary font-bold tracking-widest uppercase">
+          Encrypting Data...
         </p>
-        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Do not close this tab, Agent.</p>
+        <p className="text-on-surface-variant text-sm font-label tracking-widest uppercase">Do not close this terminal, Agent.</p>
       </div>
     );
   }
 
-  // QR Payment Step
   if (step === 'qr-payment') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-        <div className="glass-card" style={{ maxWidth: 450, width: '100%', padding: '40px 30px', textAlign: 'center', position: 'relative' }}>
-          <button onClick={() => setStep('form')} style={{ position: 'absolute', top: 20, left: 20, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14 }}>← Back</button>
-
-          <h2 className="font-display" style={{ fontSize: 24, color: 'var(--spy-green)', marginBottom: 10, letterSpacing: 2 }}>SCAN & PAY</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 30 }}>Complete payment to confirm your enrollment.</p>
-
-          <div style={{ background: '#fff', padding: 10, borderRadius: 12, display: 'inline-block', marginBottom: 30, boxShadow: '0 0 30px rgba(0,255,65,0.15)' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/qr-code.jpeg" alt="Payment QR Code" style={{ width: 220, height: 220, display: 'block' }} />
+      <div className="min-h-screen bg-surface flex items-center justify-center p-6 terminal-bg relative">
+        <div className="fixed inset-0 scanline opacity-20 pointer-events-none"></div>
+        
+        <div className="bg-surface-container-low p-8 relative max-w-lg w-full border border-outline-variant/30">
+          <div className="absolute top-0 right-0 p-4 font-headline text-[10px] text-outline-variant uppercase tracking-widest">
+            Ref: PAY-XJ992
           </div>
-
-          <div style={{ textAlign: 'left', marginBottom: 30 }}>
-            <p style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, marginBottom: 15, textAlign: 'center' }}>
-              Total Amount: <span style={{ color: 'var(--spy-green)', fontSize: 20, fontFamily: "'JetBrains Mono', monospace" }}>₹{AMOUNT}</span>
-            </p>
-
-            <label style={lbl}>Transaction ID / UTR *</label>
-            <input
-              style={inp('transactionId')}
-              placeholder="Enter 12-digit UTR number"
-              value={transactionId}
-              onChange={(e) => setTransactionId(e.target.value)}
-              onFocus={focusIn}
-              onBlur={(e) => focusOut(e, 'transactionId')}
-            />
-            {errors.transactionId && <p style={errStyle}>{errors.transactionId}</p>}
-          </div>
-
-          <button
-            className="btn-spy"
-            style={{ width: '100%', padding: '15px' }}
-            onClick={handleFinalSubmit}
-            disabled={loading}
+          <button 
+            onClick={() => setStep('form')} 
+            className="absolute top-4 left-4 font-headline text-[10px] text-primary uppercase tracking-widest hover:text-white transition-colors"
           >
-            <span>{loading ? 'Submitting…' : '✅ Confirm Enrollment'}</span>
+            ← ABORT PAYMENT
           </button>
 
-          <p style={{ color: 'var(--text-dim)', fontSize: 11, marginTop: 15 }}>
-            Your registration will be verified by the admin. You&apos;ll receive a confirmation email once approved.
-          </p>
+          <div className="mt-8 mb-8 text-center">
+            <h2 className="font-headline text-2xl font-bold uppercase tracking-tight text-on-surface flex items-center justify-center gap-3">
+              <span className="material-symbols-outlined text-primary">qr_code_scanner</span>
+              Transmit_Funds
+            </h2>
+            <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/50 to-transparent mt-2"></div>
+          </div>
+
+          <div className="flex justify-center mb-8">
+            <div className="bg-white p-2 rounded block shadow-[0_0_30px_rgba(255,180,168,0.15)]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/qr-code.jpeg" alt="Payment QR Code" className="w-48 h-48" />
+            </div>
+          </div>
+
+          <div className="text-center mb-8">
+            <p className="text-primary font-headline text-xs font-bold uppercase tracking-widest mb-2">Amount Required</p>
+            <p className="text-4xl font-headline font-black text-on-surface">₹{AMOUNT}.00</p>
+          </div>
+
+          <div className="space-y-6">
+            <div className="group">
+              <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Transaction ID / UTR *</label>
+              <div className="relative">
+                <input 
+                  className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.transactionId ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`}
+                  placeholder="ENTER 12-DIGIT UTR"
+                  value={transactionId}
+                  onChange={(e) => setTransactionId(e.target.value)}
+                />
+                {errors.transactionId && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.transactionId}</p>}
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity">
+                  <span className="material-symbols-outlined text-sm">receipt_long</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              className="w-full py-4 bg-primary text-on-primary font-headline font-black text-lg tracking-[0.2em] uppercase transition-all hover:bg-primary-container active:scale-[0.98] shadow-[0_0_20px_rgba(255,180,168,0.2)] disabled:opacity-50 flex justify-center items-center gap-2"
+              onClick={handleFinalSubmit}
+              disabled={loading}
+            >
+              {loading ? 'CONFIRMING...' : 'VERIFY_TRANSFER'}
+              {!loading && <span className="material-symbols-outlined text-sm">check_circle</span>}
+            </button>
+            <p className="text-[10px] font-headline text-center text-on-surface-variant/40 uppercase tracking-widest">
+              Funds transmission is final. Verification required by HQ.
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Registration Form
   return (
-    <div style={{ minHeight: '100vh', width: '100%', background: 'linear-gradient(135deg, #0a0a0f 0%, #0d1117 40%, #0a0f0a 100%)', position: 'relative', overflowX: 'hidden' }}>
-      {/* Background decorations */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
-        <div style={{ position: 'absolute', top: '-10%', left: '-5%', width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,255,65,0.04), transparent 70%)', filter: 'blur(80px)' }} />
-        <div style={{ position: 'absolute', bottom: '-10%', right: '-5%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,229,255,0.03), transparent 70%)', filter: 'blur(80px)' }} />
-        {/* Side accent lines */}
-        <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 2, background: 'linear-gradient(180deg, transparent, rgba(0,255,65,0.2) 20%, rgba(0,255,65,0.2) 80%, transparent)' }} />
-        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: 2, background: 'linear-gradient(180deg, transparent, rgba(0,255,65,0.2) 20%, rgba(0,255,65,0.2) 80%, transparent)' }} />
-      </div>
+    <div className="bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-x-hidden terminal-bg relative min-h-screen">
+      <div className="fixed inset-0 scanline opacity-[0.03] z-[60] pointer-events-none"></div>
 
-      <div style={{ position: 'relative', zIndex: 1, padding: '32px 16px 60px' }}>
-        {/* Header */}
-        <div style={{ maxWidth: 520, margin: '0 auto 36px', textAlign: 'center' }}>
-          <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)', textDecoration: 'none', fontSize: 13, marginBottom: 28 }}>
-            ← Back to Mission Briefing
-          </Link>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center', marginBottom: 20 }}>
-            <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, rgba(0,255,65,0.3))' }} />
-            <span style={{ background: 'linear-gradient(135deg, #003311, #001a0a)', border: '1px solid rgba(0,255,65,0.3)', borderRadius: 999, padding: '6px 20px', fontSize: 11, fontWeight: 600, color: 'var(--spy-green)', letterSpacing: 2.5, textTransform: 'uppercase' as const }}>
-              🕵️ Agent Enrollment
-            </span>
-            <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, rgba(0,255,65,0.3), transparent)' }} />
-          </div>
-
-          <h1 className="font-display" style={{ fontSize: 'clamp(26px, 5vw, 42px)', fontWeight: 900, color: 'var(--text-primary)', marginBottom: 10, letterSpacing: 2 }}>
-            <span className="text-spy-gradient">RECRUIT</span> REGISTRATION
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
-            Espionage &nbsp;•&nbsp; DBUG
-          </p>
+      <nav className="flex justify-between items-center w-full px-6 py-4 fixed top-0 z-50 bg-[#0e0e0e] border-b border-white/10 shadow-[0_0_15px_rgba(255,0,0,0.1)]">
+        <Link href="/" className="text-xl font-black text-red-600 dark:text-red-500 tracking-tighter font-headline">ESPIONAGE</Link>
+        <div className="hidden md:flex gap-8 items-center">
+          <Link href="/login" className="font-headline uppercase tracking-widest text-sm text-zinc-500 hover:text-red-400 transition-colors">LOGIN_AGENT</Link>
+          <a className="font-headline uppercase tracking-widest text-sm text-red-500 font-bold border-b-2 border-red-500 pb-1" href="#">ENROLLMENT</a>
         </div>
+      </nav>
 
-        <div style={{ maxWidth: 520, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {/* Agent Details */}
-          <div
-            className="spy-card"
-            style={{ padding: 26, position: 'relative', overflow: 'hidden' }}
-          >
-            <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 3, background: 'linear-gradient(180deg, var(--spy-green), rgba(0,255,65,0.2))' }} />
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--spy-green)', marginBottom: 20, letterSpacing: 0.5, paddingLeft: 8 }}>
-              🕵️ Agent Details
-            </h2>
-            <div style={{ paddingLeft: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={lbl}>Full Name *</label>
-                <input
-                  style={inp('name')}
-                  placeholder="Agent Name"
-                  value={form.name}
-                  onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                  onFocus={focusIn}
-                  onBlur={(e) => focusOut(e, 'name')}
-                />
-                {errors.name && <p style={errStyle}>{errors.name}</p>}
-              </div>
-
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={lbl}>Personal Email *</label>
-                <input
-                  style={inp('email')}
-                  placeholder="agent@gmail.com"
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                  onFocus={focusIn}
-                  onBlur={(e) => focusOut(e, 'email')}
-                />
-                {errors.email && <p style={errStyle}>{errors.email}</p>}
-              </div>
-
-              <div>
-                <label style={lbl}>College Email *</label>
-                <input
-                  style={inp('collegeEmail')}
-                  placeholder="ab1234@srmist.edu.in"
-                  type="email"
-                  value={form.collegeEmail}
-                  onChange={(e) => setForm((p) => ({ ...p, collegeEmail: e.target.value }))}
-                  onFocus={focusIn}
-                  onBlur={(e) => focusOut(e, 'collegeEmail')}
-                />
-                {errors.collegeEmail && <p style={errStyle}>{errors.collegeEmail}</p>}
-              </div>
-
-              <div>
-                <label style={lbl}>Registration No. *</label>
-                <input
-                  style={inp('regNo')}
-                  placeholder="RA2XXXXXXXXX"
-                  value={form.regNo}
-                  onChange={(e) => setForm((p) => ({ ...p, regNo: e.target.value }))}
-                  onFocus={focusIn}
-                  onBlur={(e) => focusOut(e, 'regNo')}
-                />
-                {errors.regNo && <p style={errStyle}>{errors.regNo}</p>}
-              </div>
-
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={lbl}>Mobile Number *</label>
-                <input
-                  style={inp('phone')}
-                  placeholder="9876543210"
-                  value={form.phone}
-                  maxLength={10}
-                  onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value.replace(/\D/g, '') }))}
-                  onFocus={focusIn}
-                  onBlur={(e) => focusOut(e, 'phone')}
-                />
-                {errors.phone && <p style={errStyle}>{errors.phone}</p>}
-              </div>
+      <main className="pt-24 pb-32 min-h-screen px-6 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+        <div className="lg:col-span-5 space-y-8 order-2 lg:order-1">
+          <div className="relative group">
+            <div className="absolute -top-2 -left-2 w-8 h-8 border-t-2 border-l-2 border-secondary-fixed"></div>
+            <div className="absolute -bottom-2 -right-2 w-8 h-8 border-b-2 border-r-2 border-secondary-fixed"></div>
+            <div className="bg-surface-container-lowest p-1 aspect-square overflow-hidden border border-outline-variant/20">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img 
+                className="w-full h-full object-cover grayscale brightness-50 contrast-125 group-hover:grayscale-0 transition-all duration-700" 
+                alt="Cyber board" 
+                src="/images/enrollment-bg.jpg"
+              />
             </div>
           </div>
-
-          {/* Payment Summary */}
-          <div
-            style={{
-              background: 'linear-gradient(135deg, rgba(0,51,17,0.3) 0%, rgba(13,17,23,0.95) 100%)',
-              border: '1px solid rgba(0,255,65,0.3)',
-              borderRadius: 16,
-              padding: 32,
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 20px 50px -15px rgba(0,255,65,0.1)',
-            }}
-          >
-            <div style={{ position: 'absolute', top: 0, right: 0, width: 80, height: 80, background: 'radial-gradient(circle at top right, rgba(0,255,65,0.06), transparent)', borderRadius: '0 16px 0 0' }} />
-
-            <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--spy-green)', marginBottom: 18, letterSpacing: 1 }}>
-              💳 Enrollment Fee
-            </h2>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 20 }}>
-              <div>
-                <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 6 }}>
-                  Individual Registration
-                </p>
-                <p style={{ color: 'var(--text-muted)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ color: 'var(--spy-green)' }}>✓</span> Secure QR Payment
-                </p>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2, letterSpacing: 1 }}>TOTAL</p>
-                <p className="font-display" style={{ fontSize: 44, fontWeight: 900, color: 'var(--spy-green)', lineHeight: 1 }}>
-                  ₹{AMOUNT}
-                </p>
-              </div>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-primary animate-pulse"></div>
+              <span className="font-headline text-[10px] uppercase tracking-[0.3em] text-primary">System Online: Cryptographic Protocol Active</span>
             </div>
-
-            <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(0,255,65,0.3), transparent)', marginBottom: 20 }} />
-
-            <button
-              className="btn-spy"
-              style={{ width: '100%', padding: '15px', fontSize: 17, borderRadius: 10, letterSpacing: 0.5 }}
-              onClick={handleSubmit}
-              disabled={loading}
-              id="proceed-to-payment-btn"
-            >
-              <span>{loading ? 'Processing…' : `🔐 Proceed to Payment — ₹${AMOUNT}`}</span>
-            </button>
-            <p style={{ color: 'var(--text-dim)', fontSize: 11, textAlign: 'center', marginTop: 10 }}>
-              By proceeding, you agree to the event rules. All registrations are final.
+            <h1 className="font-headline text-5xl font-black text-on-surface leading-[0.9] tracking-tighter uppercase">ESPIONAGE<br/><span className="text-primary-container">RECRUITMENT</span></h1>
+            <p className="text-on-surface-variant/80 text-sm leading-relaxed max-w-md">
+              Initializing protocol 7-Delta. You are applying for a covert intelligence role. Your digital footprint will be scrubbed upon successful deployment. Total mission stake: <span className="text-secondary font-bold">₹{AMOUNT}.00</span>.
             </p>
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-surface-container-low p-4 border-l-4 border-primary">
+              <div className="font-headline text-[10px] text-primary mb-1 uppercase tracking-widest">Clearance</div>
+              <div className="font-headline text-xl font-bold">LEVEL_01</div>
+            </div>
+            <div className="bg-surface-container-low p-4 border-l-4 border-secondary">
+              <div className="font-headline text-[10px] text-secondary mb-1 uppercase tracking-widest">Assignment</div>
+              <div className="font-headline text-xl font-bold">SOLO_OP</div>
+            </div>
+          </div>
         </div>
-      </div>
+
+        <div className="lg:col-span-7 bg-surface-container-low p-8 relative order-1 lg:order-2">
+          <div className="absolute top-0 right-0 p-4 font-headline text-[10px] text-outline-variant uppercase tracking-widest">
+            Ref: XJ-992/Enroll
+          </div>
+          <div className="mb-10">
+            <h2 className="font-headline text-2xl font-bold uppercase tracking-tight text-on-surface flex items-center gap-3">
+              <span className="material-symbols-outlined text-primary">fingerprint</span>
+              Identity_Verification
+            </h2>
+            <div className="h-px w-full bg-gradient-to-r from-primary/50 to-transparent mt-2"></div>
+          </div>
+
+          <form className="space-y-8" onSubmit={handleSubmit}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="group col-span-1 md:col-span-2">
+                <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Agent Alias (Full Name) *</label>
+                <div className="relative">
+                  <input 
+                    className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.name ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`} 
+                    placeholder="GHOST_PROTOCOL" 
+                    value={form.name}
+                    onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
+                  />
+                  {errors.name && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.name}</p>}
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity">
+                    <span className="material-symbols-outlined text-sm">badge</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="group">
+                <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Secure Contact (Personal Email) *</label>
+                <input 
+                  className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.email ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`} 
+                  placeholder="AGENT@SECURE.NET" 
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))}
+                />
+                {errors.email && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.email}</p>}
+              </div>
+
+              <div className="group">
+                <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Command Center (College Email) *</label>
+                <input 
+                  className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.collegeEmail ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`} 
+                  placeholder="XX1234@SRMIST.EDU.IN" 
+                  type="email"
+                  value={form.collegeEmail}
+                  onChange={(e) => setForm(p => ({ ...p, collegeEmail: e.target.value }))}
+                />
+                {errors.collegeEmail && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.collegeEmail}</p>}
+              </div>
+
+              <div className="group">
+                <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Agent ID (Registration No.) *</label>
+                <div className="relative">
+                  <input 
+                    className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.regNo ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`} 
+                    placeholder="RA2XXXXXXXXX" 
+                    value={form.regNo}
+                    onChange={(e) => setForm(p => ({ ...p, regNo: e.target.value.toUpperCase() }))}
+                  />
+                  {errors.regNo && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.regNo}</p>}
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity">
+                    <span className="material-symbols-outlined text-sm">fingerprint</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="group">
+                <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Comm Channel (Phone) *</label>
+                <div className="relative">
+                  <input 
+                    className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.phone ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`} 
+                    placeholder="9876543210" 
+                    type="tel"
+                    maxLength={10}
+                    value={form.phone}
+                    onChange={(e) => setForm(p => ({ ...p, phone: e.target.value.replace(/\D/g, '') }))}
+                  />
+                  {errors.phone && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.phone}</p>}
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity">
+                    <span className="material-symbols-outlined text-sm">call</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-surface-container-high p-6 border-t border-primary/20 mt-12">
+              <div className="flex justify-between items-end mb-6">
+                <div>
+                  <div className="font-headline text-[10px] uppercase tracking-[0.2em] text-primary mb-1">Contract Execution Fee</div>
+                  <div className="text-3xl font-headline font-black text-on-surface">₹{AMOUNT}.00 <span className="text-sm font-normal text-outline-variant">INR</span></div>
+                </div>
+                <div className="text-right">
+                  <div className="font-headline text-[10px] uppercase tracking-[0.2em] text-on-surface-variant/40">Encryption Type</div>
+                  <div className="font-headline text-xs font-medium">AES-256_BIT</div>
+                </div>
+              </div>
+              
+              <button 
+                type="submit" 
+                className="w-full py-5 bg-primary text-on-primary font-headline font-black text-xl tracking-[0.2em] uppercase transition-all hover:bg-primary-container active:scale-[0.98] shadow-[0_0_20px_rgba(255,180,168,0.2)] flex items-center justify-center gap-4"
+              >
+                ENROLL_AGENT
+                <span className="material-symbols-outlined">keyboard_double_arrow_right</span>
+              </button>
+              <p className="text-[10px] font-headline text-center mt-4 text-on-surface-variant/40 uppercase tracking-widest">
+                By enrolling, you agree to the conditions of the clandestine service directive.
+              </p>
+            </div>
+          </form>
+        </div>
+      </main>
+
+      <footer className="fixed bottom-0 w-full flex justify-between items-center px-8 py-2 z-50 bg-[#0e0e0e] border-t border-orange-500/20">
+        <div className="font-headline text-[10px] uppercase tracking-[0.2em] text-zinc-600">
+            © 2024 CLASSIFIED DIRECTIVE // EYES ONLY
+        </div>
+        <div className="flex gap-6 items-center">
+            <a className="font-headline text-[10px] uppercase tracking-[0.2em] text-zinc-600 hover:text-orange-400 transition-all opacity-80 hover:opacity-100" href="#">SYSTEM_LOGS</a>
+            <a className="font-headline text-[10px] uppercase tracking-[0.2em] text-zinc-600 hover:text-orange-400 transition-all opacity-80 hover:opacity-100" href="#">MANUAL</a>
+            <a className="font-headline text-[10px] uppercase tracking-[0.2em] text-orange-500 underline opacity-80 hover:opacity-100" href="#">TERMINATE_SESSION</a>
+        </div>
+      </footer>
     </div>
   );
 }

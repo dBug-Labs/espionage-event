@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
         const count = await Participant.countDocuments();
         const participantId = `ESP-${(count + 1).toString().padStart(3, '0')}`;
-        const amountPaid = 60;
+        const amountPaid = 70;
 
         const newParticipant = await Participant.create({
             participantId,

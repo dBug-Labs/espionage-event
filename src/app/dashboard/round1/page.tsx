@@ -165,38 +165,44 @@ export default function Round1Page() {
     await autoSubmit();
   }
 
+  // Common wrapper class
+  const wrapperClass = "bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-hidden terminal-bg relative min-h-screen";
+
   // ── Result screen ──
   if (submitted && result) {
     return (
-      <div style={{ maxWidth: 600, margin: '0 auto', padding: '60px 20px', textAlign: 'center' }}>
-        <div style={{ fontSize: 64, marginBottom: 16 }}>🎯</div>
-        <h1 className="font-display" style={{ fontSize: 32, color: 'var(--spy-green)', marginBottom: 12, letterSpacing: 3 }}>
-          INTEL TEST COMPLETE
-        </h1>
-        <div
-          style={{
-            background: 'rgba(0,255,65,0.05)',
-            border: '2px solid rgba(0,255,65,0.3)',
-            borderRadius: 16,
-            padding: 32,
-            marginBottom: 24,
-          }}
-        >
-          <p className="font-display" style={{ fontSize: 56, color: 'var(--spy-green)', fontWeight: 900 }}>
-            {result.score}
-          </p>
-          <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 8 }}>
-            {result.correct} / {result.total} correct
-          </p>
-          {warnings > 0 && (
-            <p style={{ color: 'var(--spy-amber)', fontSize: 12, marginTop: 8 }}>
-              ⚠️ {warnings} warning{warnings > 1 ? 's' : ''} received
+      <div className={wrapperClass + " flex items-center justify-center p-6"}>
+        <div className="fixed inset-0 scanline opacity-10 pointer-events-none z-0"></div>
+        <div className="relative z-10 w-full max-w-2xl bg-surface-container-low p-8 md:p-12 border border-primary/30 shadow-[0_0_30px_rgba(255,85,64,0.05)] text-center">
+          <span className="material-symbols-outlined text-primary text-6xl mb-6">flag</span>
+          <h1 className="font-headline text-3xl md:text-5xl font-black uppercase tracking-tighter text-on-surface mb-2">
+            INTEL TEST <span className="text-primary glow-red">COMPLETE</span>
+          </h1>
+          <div className="h-px w-3/4 mx-auto bg-gradient-to-r from-transparent via-primary/50 to-transparent mt-6 mb-10"></div>
+          
+          <div className="border border-primary/20 bg-primary/5 p-8 text-center mb-8 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <p className="font-headline text-[10px] tracking-[0.2em] uppercase text-primary mb-2 opacity-80">Final Score Assessment</p>
+            <p className="font-headline text-6xl md:text-8xl font-black text-primary tracking-[0.1em] relative z-10 glow-red">
+              {result.score}
             </p>
+            <p className="text-on-surface font-headline tracking-widest uppercase mt-6 text-sm">
+              {result.correct} / {result.total} Correct Signatures
+            </p>
+          </div>
+
+          {warnings > 0 && (
+            <div className="bg-error/10 border border-error/30 text-error p-4 mb-8 font-headline text-xs tracking-widest uppercase flex items-center justify-center gap-2">
+              <span className="material-symbols-outlined text-sm">warning</span>
+              {warnings} Security Warning{warnings > 1 ? 's' : ''} Received
+            </div>
           )}
+
+          <button className="px-8 py-4 bg-surface-container-higher border border-outline-variant text-on-surface font-headline font-bold text-sm tracking-[0.2em] uppercase transition-all hover:border-primary hover:text-primary active:scale-[0.98] flex justify-center items-center gap-2 mx-auto" onClick={() => router.push('/dashboard')}>
+            <span className="material-symbols-outlined text-lg">arrow_back</span>
+            RETURN TO DASHBOARD
+          </button>
         </div>
-        <button className="btn-spy" onClick={() => router.push('/dashboard')} style={{ padding: '12px 32px' }}>
-          <span>← Return to Dashboard</span>
-        </button>
       </div>
     );
   }
@@ -204,11 +210,10 @@ export default function Round1Page() {
   // ── Loading / Error ──
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ width: 48, height: 48, border: '3px solid rgba(0,255,65,0.15)', borderTop: '3px solid var(--spy-green)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-          <p style={{ color: 'var(--text-muted)' }}>Decrypting questions…</p>
+      <div className={wrapperClass + " flex items-center justify-center"}>
+        <div className="text-center">
+          <div className="w-12 h-12 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-6 shadow-[0_0_15px_rgba(255,85,64,0.3)]" />
+          <p className="font-headline text-primary tracking-[0.2em] uppercase text-xs animate-pulse">Decrypting Questions...</p>
         </div>
       </div>
     );
@@ -216,12 +221,14 @@ export default function Round1Page() {
 
   if (error) {
     return (
-      <div style={{ maxWidth: 500, margin: '0 auto', padding: '60px 20px', textAlign: 'center' }}>
-        <p style={{ fontSize: 48, marginBottom: 16 }}>🚫</p>
-        <p style={{ color: 'var(--spy-red)', fontSize: 16, marginBottom: 20 }}>{error}</p>
-        <button className="btn-spy" onClick={() => router.push('/dashboard')} style={{ padding: '12px 24px' }}>
-          <span>← Back to Dashboard</span>
-        </button>
+      <div className={wrapperClass + " flex items-center justify-center p-6 text-center"}>
+        <div className="bg-surface-container-low p-8 border border-error/30 max-w-md w-full">
+          <span className="material-symbols-outlined text-error text-5xl mb-4">block</span>
+          <p className="font-headline text-error text-sm tracking-widest uppercase mb-6">{error}</p>
+          <button className="px-8 py-3 bg-error/10 text-error border border-error/50 font-headline text-sm tracking-widest uppercase hover:bg-error hover:text-on-error transition-all" onClick={() => router.push('/dashboard')}>
+            Back to Dashboard
+          </button>
+        </div>
       </div>
     );
   }
@@ -229,28 +236,52 @@ export default function Round1Page() {
   // ── Pre-start screen ──
   if (!started) {
     return (
-      <div style={{ maxWidth: 600, margin: '0 auto', padding: '60px 20px', textAlign: 'center' }}>
-        <div style={{ fontSize: 64, marginBottom: 20 }}>🧠</div>
-        <h1 className="font-display" style={{ fontSize: 28, color: 'var(--spy-green)', marginBottom: 12, letterSpacing: 3 }}>
-          ROUND 1: INTEL TEST
-        </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: 15, marginBottom: 32, lineHeight: 1.7 }}>
-          {questions.length} questions • One-time submission • No going back
-        </p>
+      <div className={wrapperClass + " flex items-center justify-center p-6"}>
+        <div className="fixed inset-0 scanline opacity-10 pointer-events-none z-0"></div>
+        <div className="relative z-10 w-full max-w-2xl bg-surface-container-low p-8 md:p-12 border border-outline-variant/30 shadow-[0_0_30px_rgba(255,85,64,0.05)] text-center">
+          <div className="absolute top-0 right-0 p-4 font-headline text-[10px] text-outline-variant uppercase tracking-widest">
+            Ref: R1-PROTOCOL
+          </div>
+          
+          <span className="material-symbols-outlined text-primary text-5xl mb-6">psychology</span>
+          <h1 className="font-headline text-3xl md:text-5xl font-black uppercase tracking-tighter text-on-surface mb-2">
+            ROUND 1: BUG BREACH
+          </h1>
+          <p className="text-secondary font-headline text-xs tracking-[0.2em] uppercase mb-8">
+            {questions.length} questions • One-time submission • No going back
+          </p>
+          
+          <div className="bg-surface-container-highest border border-error/30 p-6 mb-10 text-left relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-error"></div>
+            <h3 className="font-headline text-xs text-error font-bold tracking-[0.2em] uppercase mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-sm">gavel</span>
+              RULES OF ENGAGEMENT
+            </h3>
+            <ul className="text-on-surface-variant text-sm font-body space-y-3 pl-2">
+              <li className="flex items-start gap-2">
+                <span className="material-symbols-outlined text-[16px] text-primary mt-0.5">lock</span>
+                <span>Fullscreen mode is <strong className="text-on-surface font-bold">mandatory</strong>. Exiting triggers a warning.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="material-symbols-outlined text-[16px] text-primary mt-0.5">block</span>
+                <span>No tab switching, no copy-paste, no right-click, no keyboard shortcuts.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="material-symbols-outlined text-[16px] text-error mt-0.5">warning</span>
+                <span>You get <strong className="text-error font-bold">3 warnings max</strong> before automatic submission.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="material-symbols-outlined text-[16px] text-primary mt-0.5">done_all</span>
+                <span>One-time submission only. Select carefully.</span>
+              </li>
+            </ul>
+          </div>
 
-        <div className="spy-card" style={{ padding: 24, marginBottom: 28, textAlign: 'left' }}>
-          <h3 style={{ color: 'var(--spy-amber)', fontSize: 14, fontWeight: 700, marginBottom: 12, letterSpacing: 1 }}>⚠️ RULES OF ENGAGEMENT</h3>
-          <ul style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 2, listStyle: 'none', padding: 0 }}>
-            <li>🔒 Fullscreen mode is <strong style={{ color: 'var(--text-primary)' }}>mandatory</strong></li>
-            <li>🚫 No tab switching, no copy-paste, no right-click</li>
-            <li>⚠️ You get <strong style={{ color: 'var(--spy-amber)' }}>3 warnings max</strong> — then auto-submit</li>
-            <li>📝 One-time submission — choose wisely</li>
-          </ul>
+          <button className="w-full py-5 bg-primary text-on-primary font-headline font-black text-lg tracking-[0.2em] uppercase transition-all hover:bg-primary-container active:scale-[0.98] shadow-[0_0_20px_rgba(255,85,64,0.3)] flex justify-center items-center gap-3 animate-pulse" onClick={handleStart}>
+            <span className="material-symbols-outlined">fullscreen</span>
+            ENTER FULLSCREEN & START
+          </button>
         </div>
-
-        <button className="btn-spy animate-pulse-green" style={{ padding: '16px 48px', fontSize: 18 }} onClick={handleStart}>
-          <span>🎯 Enter Fullscreen & Start</span>
-        </button>
       </div>
     );
   }
@@ -260,179 +291,133 @@ export default function Round1Page() {
   const progress = Object.keys(answers).length;
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: '24px 20px', userSelect: 'none' }}>
+    <div className={wrapperClass + " pt-8 pb-32 px-4 md:px-8 select-none"}>
       {/* Warning overlay */}
       {showWarning && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            padding: '16px 24px',
-            background: 'rgba(255,0,60,0.9)',
-            color: '#fff',
-            textAlign: 'center',
-            fontSize: 16,
-            fontWeight: 700,
-            zIndex: 9999,
-            animation: 'fadeInUp 0.3s ease',
-          }}
-        >
-          {warningMessage}
+        <div className="fixed inset-0 bg-error/90 z-[9999] flex items-center justify-center animate-[pulse_0.5s_ease-in-out_infinite] backdrop-blur-sm">
+          <div className="bg-[#111] border-2 border-error p-10 max-w-xl w-full text-center shadow-[0_0_100px_rgba(255,0,0,0.5)]">
+            <span className="material-symbols-outlined text-error text-7xl mb-6">warning</span>
+            <h2 className="font-headline text-3xl font-black text-error uppercase tracking-widest mb-4">SECURITY ALERT</h2>
+            <p className="text-on-surface font-mono text-lg">{warningMessage}</p>
+          </div>
         </div>
       )}
 
-      {/* Top bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <span className="font-display" style={{ color: 'var(--spy-green)', fontSize: 14, letterSpacing: 2 }}>INTEL TEST</span>
-          <span style={{ color: 'var(--text-dim)', fontSize: 13, marginLeft: 12 }}>
-            Q {currentQ + 1} / {questions.length}
-          </span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span className="font-mono" style={{ fontSize: 12, color: warnings > 0 ? 'var(--spy-red)' : 'var(--text-dim)' }}>
-            ⚠️ {warnings}/{MAX_WARNINGS}
-          </span>
-          <span className="font-mono" style={{ fontSize: 12, color: 'var(--spy-green)' }}>
-            ✅ {progress}/{questions.length}
-          </span>
-        </div>
-      </div>
-
-      {/* Progress bar */}
-      <div style={{ width: '100%', height: 4, background: 'rgba(0,255,65,0.1)', borderRadius: 2, marginBottom: 28 }}>
-        <div style={{ width: `${((currentQ + 1) / questions.length) * 100}%`, height: '100%', background: 'var(--spy-green)', borderRadius: 2, transition: 'width 0.3s' }} />
-      </div>
-
-      {/* Question card */}
-      {q && (
-        <div className="spy-card" style={{ padding: 32, marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <span className="font-mono" style={{ fontSize: 11, color: 'var(--spy-cyan)', background: 'rgba(0,229,255,0.1)', padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(0,229,255,0.2)' }}>
-              {q.category.toUpperCase()}
-            </span>
-            <span className="font-mono" style={{ fontSize: 11, color: 'var(--spy-green)' }}>
-              {q.points} pt{q.points > 1 ? 's' : ''}
+      <div className="max-w-4xl mx-auto relative z-10">
+        {/* Top bar */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 bg-surface-container-low border border-outline-variant/30 p-4 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="bg-primary/10 text-primary border border-primary/20 px-3 py-1 font-headline text-[10px] tracking-widest uppercase hidden md:block">
+              LIVE OPERATION
+            </div>
+            <span className="font-headline text-on-surface text-sm uppercase tracking-widest font-bold">
+              Q {currentQ + 1} / {questions.length}
             </span>
           </div>
+          
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-error text-sm">warning</span>
+              <span className="font-headline text-[10px] tracking-widest uppercase text-error">
+                Warnings: {warnings}/{MAX_WARNINGS}
+              </span>
+            </div>
+            <div className="h-4 w-px bg-outline-variant/30 hidden md:block"></div>
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-sm">check_circle</span>
+              <span className="font-headline text-[10px] tracking-widest uppercase text-primary">
+                Progress: {progress}/{questions.length}
+              </span>
+            </div>
+          </div>
+        </div>
 
-          <h2 style={{ fontSize: 18, color: 'var(--text-primary)', lineHeight: 1.6, marginBottom: 24, fontWeight: 500 }}>
-            {q.questionText}
-          </h2>
+        {/* Progress bar */}
+        <div className="w-full h-1 bg-surface-container-highest mb-10 overflow-hidden">
+          <div 
+            className="h-full bg-primary transition-all duration-300 ease-out shadow-[0_0_10px_rgba(255,85,64,0.5)]" 
+            style={{ width: `${((currentQ + 1) / questions.length) * 100}%` }}
+          />
+        </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {q.options.map((opt, i) => {
-              const selected = answers[q._id] === i;
-              return (
-                <button
-                  key={i}
-                  onClick={() => setAnswers((prev) => ({ ...prev, [q._id]: i }))}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 14,
-                    padding: '14px 18px',
-                    background: selected ? 'rgba(0,255,65,0.08)' : 'rgba(13,17,23,0.6)',
-                    border: `1px solid ${selected ? 'rgba(0,255,65,0.4)' : 'var(--border)'}`,
-                    borderRadius: 10,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    textAlign: 'left',
-                    color: selected ? 'var(--spy-green)' : 'var(--text-primary)',
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: 14,
-                  }}
-                >
-                  <span
-                    className="font-mono"
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 13,
-                      fontWeight: 700,
-                      background: selected ? 'var(--spy-green)' : 'rgba(255,255,255,0.05)',
-                      color: selected ? '#000' : 'var(--text-muted)',
-                      border: `1px solid ${selected ? 'var(--spy-green)' : 'rgba(255,255,255,0.1)'}`,
-                      flexShrink: 0,
-                    }}
+        {/* Question card */}
+        {q && (
+          <div className="bg-surface-container-high border border-outline-variant/50 p-6 md:p-10 mb-8 relative">
+            <div className="absolute top-0 right-0 py-1 px-3 bg-surface-container-highest border-b border-l border-outline-variant/50 flex items-center gap-4">
+              <span className="font-headline text-[10px] uppercase tracking-widest text-secondary">{q.category}</span>
+              <span className="font-headline text-[10px] uppercase tracking-widest text-primary font-bold">{q.points} PT{q.points > 1 ? 'S' : ''}</span>
+            </div>
+
+            <h2 className="text-lg md:text-xl font-body text-on-surface leading-loose mb-10 mt-4">
+              {q.questionText}
+            </h2>
+
+            <div className="space-y-4">
+              {q.options.map((opt, i) => {
+                const selected = answers[q._id] === i;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setAnswers((prev) => ({ ...prev, [q._id]: i }))}
+                    className={`w-full flex items-center gap-4 p-4 md:p-5 text-left border transition-all ${selected ? 'bg-primary/5 border-primary shadow-[0_0_15px_rgba(255,85,64,0.1)]' : 'bg-surface-container-low border-outline-variant/30 hover:border-outline-variant hover:bg-surface-container-highest'}`}
                   >
-                    {String.fromCharCode(65 + i)}
-                  </span>
-                  {opt}
-                </button>
-              );
-            })}
+                    <span 
+                      className={`w-8 h-8 flex items-center justify-center font-headline text-xs tracking-widest shrink-0 transition-colors ${selected ? 'bg-primary text-on-primary font-bold shadow-[0_0_10px_rgba(255,85,64,0.3)]' : 'bg-surface-container-highest border border-outline-variant text-secondary'}`}
+                    >
+                      {String.fromCharCode(65 + i)}
+                    </span>
+                    <span className={`font-body text-sm md:text-base leading-relaxed ${selected ? 'text-primary' : 'text-on-surface'}`}>
+                      {opt}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Navigation */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-        <button
-          onClick={() => setCurrentQ((c) => Math.max(0, c - 1))}
-          disabled={currentQ === 0}
-          style={{
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid var(--border)',
-            color: currentQ === 0 ? 'var(--text-dim)' : 'var(--text-primary)',
-            padding: '10px 20px',
-            borderRadius: 8,
-            cursor: currentQ === 0 ? 'not-allowed' : 'pointer',
-            fontSize: 14,
-          }}
-        >
-          ← Previous
-        </button>
-
-        {currentQ < questions.length - 1 ? (
-          <button
-            onClick={() => setCurrentQ((c) => Math.min(questions.length - 1, c + 1))}
-            className="btn-spy"
-            style={{ padding: '10px 24px', fontSize: 14 }}
-          >
-            <span>Next →</span>
-          </button>
-        ) : (
-          <button
-            onClick={handleSubmit}
-            className="btn-classified"
-            style={{ padding: '10px 24px', fontSize: 14 }}
-          >
-            <span>🚀 Submit All Answers</span>
-          </button>
         )}
-      </div>
 
-      {/* Question navigator dots */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 24, justifyContent: 'center' }}>
-        {questions.map((_, i) => (
+        {/* Navigation */}
+        <div className="flex justify-between items-center bg-[#0e0e0e] border border-outline-variant/20 p-4">
           <button
-            key={i}
-            onClick={() => setCurrentQ(i)}
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 6,
-              fontSize: 11,
-              fontWeight: 600,
-              border: i === currentQ ? '2px solid var(--spy-green)' : '1px solid var(--border)',
-              background: answers[questions[i]._id] !== undefined ? 'rgba(0,255,65,0.15)' : 'transparent',
-              color: i === currentQ ? 'var(--spy-green)' : answers[questions[i]._id] !== undefined ? 'var(--spy-green)' : 'var(--text-dim)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            onClick={() => setCurrentQ((c) => Math.max(0, c - 1))}
+            disabled={currentQ === 0}
+            className={`px-6 py-3 font-headline text-xs tracking-widest uppercase border border-outline-variant transition-all flex items-center gap-2 ${currentQ === 0 ? 'opacity-30 cursor-not-allowed text-secondary' : 'text-on-surface hover:bg-surface-container-highest hover:text-primary'}`}
           >
-            {i + 1}
+            <span className="material-symbols-outlined text-sm">chevron_left</span>
+            PREVIOUS
           </button>
-        ))}
+
+          {currentQ < questions.length - 1 ? (
+            <button
+              onClick={() => setCurrentQ((c) => Math.min(questions.length - 1, c + 1))}
+              className="px-8 py-3 bg-surface-container-highest border-l-2 border-primary text-primary font-headline font-bold text-xs tracking-widest uppercase hover:bg-primary/10 transition-all flex items-center gap-2"
+            >
+              NEXT
+              <span className="material-symbols-outlined text-sm">chevron_right</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              className="px-8 py-3 bg-error text-on-error font-headline font-black text-xs tracking-widest uppercase hover:bg-error/90 shadow-[0_0_15px_rgba(255,0,0,0.3)] transition-all flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-sm">send</span>
+              SUBMIT ALL
+            </button>
+          )}
+        </div>
+
+        {/* Navigator dots */}
+        <div className="mt-12 flex flex-wrap gap-2 justify-center">
+          {questions.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentQ(i)}
+              className={`w-8 h-8 flex flex-col items-center justify-center font-headline text-[10px] tracking-widest transition-all ${i === currentQ ? 'bg-transparent border border-primary text-primary shadow-[0_0_10px_rgba(255,85,64,0.2)]' : answers[questions[i]._id] !== undefined ? 'bg-primary/10 border border-primary/20 text-primary' : 'bg-surface-container-low border border-outline-variant/30 text-secondary hover:bg-surface-container-highest'}`}
+            >
+              {i + 1}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

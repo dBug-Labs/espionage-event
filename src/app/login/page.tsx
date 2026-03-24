@@ -69,126 +69,121 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #0a0a0f 0%, #0d1117 50%, #0a0f0a 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 20,
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Background effects */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
-        <div style={{ position: 'absolute', top: '10%', left: '-5%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,255,65,0.06), transparent)', filter: 'blur(80px)' }} />
-        <div style={{ position: 'absolute', bottom: '10%', right: '-5%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,229,255,0.04), transparent)', filter: 'blur(80px)' }} />
-      </div>
+    <div className="bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-hidden terminal-bg relative min-h-screen flex items-center justify-center">
+      <div className="fixed inset-0 scanline opacity-10 pointer-events-none z-0"></div>
 
-      <div
-        className="glass-card"
-        style={{
-          width: '100%',
-          maxWidth: 420,
-          padding: 40,
-          textAlign: 'center',
-          position: 'relative',
-          zIndex: 1,
-        }}
-      >
-        {/* Logo area */}
-        <div style={{ marginBottom: 32 }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>🕵️</div>
-          <h1
-            className="font-display"
-            style={{ fontSize: 28, fontWeight: 700, color: 'var(--spy-green)', marginBottom: 6, letterSpacing: 4 }}
-          >
-            ESPIONAGE
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, letterSpacing: 2 }}>
-            AGENT AUTHENTICATION
-          </p>
+      <nav className="flex justify-between items-center w-full px-6 py-4 fixed top-0 z-50 bg-[#0e0e0e] border-b border-white/10 shadow-[0_0_15px_rgba(255,0,0,0.1)]">
+        <Link href="/" className="text-xl font-black text-red-600 dark:text-red-500 tracking-tighter font-headline">ESPIONAGE</Link>
+        <div className="hidden md:flex gap-8 items-center">
+          <Link href="/register" className="font-headline uppercase tracking-widest text-sm text-zinc-500 hover:text-red-400 transition-colors">ENROLLMENT</Link>
+          <a className="font-headline uppercase tracking-widest text-sm text-red-500 font-bold border-b-2 border-red-500 pb-1" href="/login">LOGIN_AGENT</a>
         </div>
+      </nav>
 
-        {/* Divider */}
-        <div className="spy-divider" style={{ width: 120, marginBottom: 28 }} />
+      <div className="relative z-10 w-full max-w-lg px-6 mt-16">
+        <div className="bg-surface-container-low p-8 relative border border-outline-variant/30 shadow-[0_0_30px_rgba(255,85,64,0.05)]">
+          <div className="absolute top-0 right-0 p-4 font-headline text-[10px] text-outline-variant uppercase tracking-widest">
+            Ref: AUTH-PROTOCOL
+          </div>
+          
+          <div className="mb-10 text-center flex flex-col items-center">
+            <span className="material-symbols-outlined text-primary text-5xl mb-4" style={{ fontVariationSettings: "'FILL' 1" }}>policy</span>
+            <h2 className="font-headline text-3xl font-black uppercase tracking-tighter text-on-surface">
+              AGENT_AUTH
+            </h2>
+            <div className="h-px w-3/4 bg-gradient-to-r from-transparent via-primary/50 to-transparent mt-4"></div>
+          </div>
 
-        {step === 'email' ? (
-          <>
-            <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 20 }}>
-              Enter your registered email to receive an access code.
-            </p>
-            <input
-              type="email"
-              placeholder="agent@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSendOTP()}
-              className="form-input"
-              style={{ marginBottom: 12, textAlign: 'center', fontFamily: "'JetBrains Mono', monospace", fontSize: 14 }}
-            />
-            {error && <p style={{ color: 'var(--spy-red)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
-            <button
-              className="btn-spy"
-              style={{ width: '100%', padding: 14, marginTop: 8 }}
-              onClick={handleSendOTP}
-              disabled={loading}
-            >
-              <span>{loading ? 'Transmitting...' : '📡 Send Access Code'}</span>
-            </button>
-          </>
-        ) : (
-          <>
-            <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 8 }}>
-              Access code sent to
-            </p>
-            <p className="font-mono" style={{ color: 'var(--spy-green)', fontSize: 13, marginBottom: 20 }}>
-              {email}
-            </p>
-            {success && <p style={{ color: 'var(--spy-green)', fontSize: 12, marginBottom: 12, opacity: 0.7 }}>{success}</p>}
-            <input
-              type="text"
-              placeholder="000000"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              onKeyDown={(e) => e.key === 'Enter' && handleVerifyOTP()}
-              className="form-input"
-              maxLength={6}
-              style={{
-                marginBottom: 12,
-                textAlign: 'center',
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 28,
-                letterSpacing: 12,
-                padding: '16px 20px',
-              }}
-            />
-            {error && <p style={{ color: 'var(--spy-red)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
-            <button
-              className="btn-spy"
-              style={{ width: '100%', padding: 14, marginTop: 8 }}
-              onClick={handleVerifyOTP}
-              disabled={loading}
-            >
-              <span>{loading ? 'Verifying...' : '🔓 Authenticate'}</span>
-            </button>
-            <button
-              onClick={() => { setStep('email'); setError(''); setOtp(''); setSuccess(''); }}
-              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 13, marginTop: 16, cursor: 'pointer', textDecoration: 'underline' }}
-            >
-              Use a different email
-            </button>
-          </>
-        )}
+          <div className="space-y-6">
+            {step === 'email' ? (
+              <>
+                <p className="font-headline text-xs text-secondary text-center uppercase tracking-[0.2em] mb-4">
+                  Identify Yourself
+                </p>
+                <div className="group">
+                  <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Secure Contact (Email) *</label>
+                  <div className="relative">
+                    <input 
+                      type="email"
+                      className={`w-full bg-surface-container-highest border-none border-b-2 ${error ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-4 placeholder:text-outline-variant/40 text-center`} 
+                      placeholder="AGENT@SECURE.NET" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSendOTP()}
+                    />
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity">
+                      <span className="material-symbols-outlined text-sm">mail</span>
+                    </div>
+                  </div>
+                  {error && <p className="text-error mt-2 text-center font-headline text-[10px] tracking-widest uppercase">{error}</p>}
+                </div>
+                
+                <button
+                  className="w-full py-4 mt-6 bg-primary text-on-primary font-headline font-black text-lg tracking-[0.2em] uppercase transition-all hover:bg-primary-container active:scale-[0.98] shadow-[0_0_20px_rgba(255,180,168,0.2)] disabled:opacity-50 flex justify-center items-center gap-2"
+                  onClick={handleSendOTP}
+                  disabled={loading}
+                >
+                  {loading ? 'TRANSMITTING...' : 'SEND_ACCESS_CODE'}
+                  {!loading && <span className="material-symbols-outlined text-lg">radar</span>}
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="font-headline text-[10px] text-secondary text-center uppercase tracking-[0.2em]">
+                  Access Code Dispatched To
+                </p>
+                <p className="font-headline text-sm text-primary text-center font-bold tracking-widest mb-6 border border-primary/20 bg-primary/5 py-2">
+                  {email}
+                </p>
+                
+                {success && <p className="text-primary text-center font-headline text-[10px] tracking-widest uppercase mb-4 animate-pulse">{success}</p>}
+                
+                <div className="group mb-2">
+                  <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block text-center">Enter 6-Digit Direct Verification Code *</label>
+                  <input 
+                    type="text"
+                    className={`w-full bg-surface-container-highest border-none border-b-2 ${error ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline font-bold text-3xl tracking-[0.5em] transition-all px-4 py-4 placeholder:text-outline-variant/20 text-center`} 
+                    placeholder="000000" 
+                    maxLength={6}
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    onKeyDown={(e) => e.key === 'Enter' && handleVerifyOTP()}
+                  />
+                  {error && <p className="text-error mt-2 text-center font-headline text-[10px] tracking-widest uppercase">{error}</p>}
+                </div>
 
-        <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
-          <Link href="/" style={{ color: 'var(--text-dim)', textDecoration: 'none', fontSize: 13 }}>
-            ← Back to Mission Briefing
-          </Link>
+                <button
+                  className="w-full py-4 mt-8 bg-primary text-on-primary font-headline font-black text-lg tracking-[0.2em] uppercase transition-all hover:bg-primary-container active:scale-[0.98] shadow-[0_0_20px_rgba(255,180,168,0.2)] disabled:opacity-50 flex justify-center items-center gap-2"
+                  onClick={handleVerifyOTP}
+                  disabled={loading || otp.length < 6}
+                >
+                  {loading ? 'VERIFYING...' : 'AUTHENTICATE'}
+                  {!loading && <span className="material-symbols-outlined text-lg">lock_open</span>}
+                </button>
+                
+                <div className="text-center mt-6 pt-4 border-t border-outline-variant/20">
+                  <button
+                    onClick={() => { setStep('email'); setError(''); setOtp(''); setSuccess(''); }}
+                    className="font-headline text-[10px] uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors hover:underline"
+                  >
+                    ← RE-ENTER SECURE CONTACT
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
+      
+      <footer className="fixed bottom-0 w-full flex justify-between items-center px-8 py-2 z-50 bg-[#0e0e0e] border-t border-orange-500/20 mt-auto">
+        <div className="font-headline text-[10px] uppercase tracking-[0.2em] text-zinc-600">
+            © 2024 CLASSIFIED DIRECTIVE // EYES ONLY
+        </div>
+        <div className="flex gap-6 items-center">
+            <a className="font-headline text-[10px] uppercase tracking-[0.2em] text-zinc-600 hover:text-orange-400 transition-all opacity-80 hover:opacity-100" href="#">SYSTEM_LOGS</a>
+            <a className="font-headline text-[10px] uppercase tracking-[0.2em] text-zinc-600 hover:text-orange-400 transition-all opacity-80 hover:opacity-100" href="#">MANUAL</a>
+        </div>
+      </footer>
     </div>
   );
 }

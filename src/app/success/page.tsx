@@ -27,7 +27,7 @@ export default function SuccessPage() {
     }
   }, []);
 
-  // Confetti effect with spy-green colors
+  // Confetti effect with tactical red/orange colors
   useEffect(() => {
     if (!data) return;
     const canvas = canvasRef.current;
@@ -38,7 +38,7 @@ export default function SuccessPage() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const COLORS = ['#00ff41', '#00cc33', '#00e5ff', '#ffffff', '#ffb300', '#003311'];
+    const COLORS = ['#ff5540', '#ff0000', '#ffb4aa', '#ffffff', '#ff8a00', '#cc0000'];
     const pieces: {
       x: number; y: number; w: number; h: number;
       color: string; vx: number; vy: number; rotation: number; spin: number;
@@ -83,138 +83,107 @@ export default function SuccessPage() {
 
   if (!data) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-dark)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 24 }}>
-        <p style={{ fontSize: 60, marginBottom: 16 }}>🔍</p>
-        <h1 className="font-display" style={{ fontSize: 32, color: 'var(--text-primary)', marginBottom: 12 }}>No Registration Found</h1>
-        <p style={{ color: 'var(--text-muted)', marginBottom: 32, fontSize: 15 }}>
-          This page shows your confirmation after registration. If you just registered, this may be a session issue.
+      <div className="bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-hidden terminal-bg min-h-screen relative flex flex-col items-center justify-center p-6 text-center">
+        <span className="material-symbols-outlined text-6xl mb-4 text-secondary">error</span>
+        <h1 className="font-headline text-3xl text-on-surface mb-3 uppercase tracking-widest font-bold">NO REGISTRATION FOUND</h1>
+        <p className="text-on-surface-variant mb-8 text-sm">
+          This page shows your confirmation after registration.
         </p>
         <Link href="/">
-          <button className="btn-spy"><span>← Back to Base</span></button>
+          <button className="px-8 py-3 bg-surface-container-high border border-outline-variant text-on-surface font-headline font-bold uppercase tracking-widest text-sm hover:border-primary transition-all flex items-center gap-2">
+            <span className="material-symbols-outlined text-sm">arrow_back</span>
+            RETURN TO BASE
+          </button>
         </Link>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-dark)', position: 'relative', padding: '48px 16px' }}>
+    <div className="bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-hidden terminal-bg relative min-h-screen flex items-center justify-center p-6">
       {!confettiDone && (
-        <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 999 }} />
+        <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-50" />
       )}
+      
+      <div className="fixed inset-0 scanline opacity-10 pointer-events-none z-0"></div>
 
-      {/* Background orbs */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
-        <div style={{ position: 'absolute', top: '10%', left: '5%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,255,65,0.06), transparent)', filter: 'blur(60px)' }} />
-        <div style={{ position: 'absolute', bottom: '10%', right: '5%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,229,255,0.04), transparent)', filter: 'blur(60px)' }} />
-      </div>
-
-      <div style={{ maxWidth: 600, margin: '0 auto', position: 'relative', zIndex: 1 }}>
-        {/* Success header */}
-        <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <div style={{ fontSize: 80, marginBottom: 16, lineHeight: 1 }}>🕵️</div>
-          <h1 className="font-display" style={{ fontSize: 'clamp(28px, 6vw, 48px)', fontWeight: 900, color: 'var(--text-primary)', marginBottom: 8, letterSpacing: 3 }}>
-            <span className="text-spy-gradient">MISSION</span> ACCEPTED
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 16 }}>
-            Enrollment recorded. Payment verification in progress.
-          </p>
-        </div>
-
-        {/* Participant ID badge */}
-        <div
-          style={{
-            background: 'linear-gradient(135deg, #003311, #001a0a)',
-            border: '2px solid rgba(0,255,65,0.4)',
-            borderRadius: 20,
-            padding: '32px 40px',
-            textAlign: 'center',
-            marginBottom: 24,
-          }}
-        >
-          <p style={{ fontSize: 12, letterSpacing: 4, textTransform: 'uppercase', color: 'rgba(0,255,65,0.5)', marginBottom: 8 }}>Agent ID</p>
-          <p className="font-display" style={{ fontSize: 48, fontWeight: 900, color: 'var(--spy-green)', letterSpacing: 8, lineHeight: 1 }}>
-            {data.participantId}
-          </p>
-          <p style={{ color: 'rgba(0,255,65,0.6)', marginTop: 8, fontSize: 14 }}>{data.name}</p>
-        </div>
-
-        {/* Details card */}
-        <div className="glass-card" style={{ padding: 32, marginBottom: 24 }}>
-          <div style={{ marginBottom: 20 }}>
-            <h3 style={{ fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--spy-green)', marginBottom: 12 }}>Agent Intel</h3>
-            <div style={{ padding: '12px 16px', background: 'rgba(0,255,65,0.03)', borderRadius: 10, border: '1px solid var(--border)' }}>
-              <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2, fontSize: 15 }}>
-                {data.name}
-              </p>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{data.email}</p>
-            </div>
+      <div className="relative z-10 w-full max-w-2xl mt-12 mb-12">
+        <div className="bg-surface-container-low p-8 md:p-12 relative border border-outline-variant/30 shadow-[0_0_30px_rgba(255,85,64,0.05)]">
+          <div className="absolute top-0 right-0 p-4 font-headline text-[10px] text-outline-variant uppercase tracking-widest">
+            Ref: SUCCESS-PROTOCOL
           </div>
-
-          <div className="spy-divider" style={{ marginBottom: 20 }} />
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 4 }}>Amount Paid</p>
-              <p className="font-display" style={{ fontSize: 36, fontWeight: 900, color: 'var(--spy-amber)' }}>₹{data.amountPaid}</p>
+          
+          <div className="mb-10 text-center flex flex-col items-center">
+            <div className="w-20 h-20 bg-primary/10 border border-primary/30 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(255,85,64,0.2)]">
+              <span className="material-symbols-outlined text-primary text-5xl">verified_user</span>
             </div>
-            <div style={{ background: 'rgba(255,179,0,0.1)', border: '1px solid rgba(255,179,0,0.3)', borderRadius: 999, padding: '8px 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ color: 'var(--spy-amber)', fontSize: 18 }}>⏳</span>
-              <span style={{ color: 'var(--spy-amber)', fontWeight: 600, fontSize: 14 }}>Verification Pending</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Save reminder */}
-        <div
-          style={{
-            background: 'rgba(0,255,65,0.03)',
-            border: '1px solid rgba(0,255,65,0.15)',
-            borderRadius: 12,
-            padding: '16px 20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
-            marginBottom: 24,
-          }}
-        >
-          <span style={{ fontSize: 24, flexShrink: 0 }}>📸</span>
-          <div>
-            <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 14, marginBottom: 2 }}>Save This Screenshot!</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5 }}>
-              Save your Agent ID <strong style={{ color: 'var(--spy-green)' }}>{data.participantId}</strong>. Once verified, you&apos;ll receive an email with a QR code for event entry.
+            <h1 className="font-headline text-3xl md:text-5xl font-black uppercase tracking-tighter text-on-surface mb-2">
+              MISSION <span className="text-primary">ACCEPTED</span>
+            </h1>
+            <p className="text-secondary font-headline text-[10px] md:text-xs tracking-widest uppercase">
+              Enrollment recorded. Payment verification in progress.
             </p>
+            <div className="h-px w-3/4 bg-gradient-to-r from-transparent via-primary/50 to-transparent mt-8"></div>
           </div>
-        </div>
 
-        {/* WhatsApp CTA */}
-        <a
-          href={whatsappLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 12,
-            background: 'linear-gradient(135deg, #25D366, #128C7E)',
-            color: 'white',
-            padding: '18px 32px',
-            borderRadius: 12,
-            textDecoration: 'none',
-            fontWeight: 700,
-            fontSize: 18,
-            marginBottom: 24,
-            transition: 'transform 0.3s, box-shadow 0.3s',
-          }}
-        >
-          <span style={{ fontSize: 24 }}>📱</span>
-          Join Mission WhatsApp Group
-        </a>
+          <div className="border border-primary/20 bg-primary/5 p-8 text-center mb-8 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <p className="font-headline text-[10px] tracking-[0.2em] uppercase text-primary mb-2 opacity-80">Assigned Agent ID</p>
+            <p className="font-headline text-4xl md:text-6xl font-black text-primary tracking-[0.2em] relative z-10 glow-red">
+              {data.participantId}
+            </p>
+            <p className="text-on-surface font-headline tracking-widest uppercase mt-4 text-sm font-bold">{data.name}</p>
+          </div>
 
-        <div style={{ textAlign: 'center' }}>
-          <Link href="/">
-            <button className="btn-gold" style={{ fontSize: 14 }}>← Back to Base</button>
-          </Link>
+          <div className="space-y-6 mb-10">
+            <div className="border border-outline-variant/30 bg-surface-container-highest p-6 relative">
+              <h3 className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-4 absolute -top-2 left-4 bg-surface-container-highest px-2">
+                Agent Intel
+              </h3>
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 gap-2">
+                <span className="text-on-surface-variant font-headline text-[10px] md:text-xs uppercase tracking-widest">Secure Contact</span>
+                <span className="text-on-surface font-headline font-bold text-xs md:text-sm tracking-widest">{data.email}</span>
+              </div>
+              <div className="h-px w-full bg-outline-variant/20 mb-4"></div>
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+                <span className="text-on-surface-variant font-headline text-[10px] md:text-xs uppercase tracking-widest">Clearance Fee</span>
+                <div className="flex items-center gap-4">
+                  <span className="text-on-surface font-headline font-bold text-lg tracking-widest">₹{data.amountPaid}</span>
+                  <div className="bg-primary/10 border border-primary/20 text-primary px-3 py-1 font-headline text-[10px] tracking-widest uppercase flex items-center gap-1 animate-pulse">
+                    <span className="material-symbols-outlined text-[10px] hidden md:block">pending</span>
+                    PENDING VERIFICATION
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-surface-container-low border border-outline-variant p-4 flex items-start gap-4 shadow-inner">
+              <span className="material-symbols-outlined text-primary text-2xl mt-1 hidden sm:block">screenshot</span>
+              <div>
+                <p className="font-headline font-bold text-xs md:text-sm tracking-widest text-on-surface uppercase mb-1">Save This Intel</p>
+                <p className="text-xs text-on-surface-variant leading-relaxed">
+                  Capture a screenshot of your Agent ID. Once verified, you will receive an encrypted email with a QR code for event entry.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4">
+            <a
+              href={whatsappLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 py-4 bg-[#25D366] text-white font-headline font-black text-xs md:text-sm tracking-[0.2em] uppercase transition-all hover:bg-[#128C7E] active:scale-[0.98] shadow-[0_0_20px_rgba(37,211,102,0.2)] flex justify-center items-center gap-3"
+            >
+              <span className="material-symbols-outlined text-lg md:text-xl">forum</span>
+              JOIN MISSION COMMS
+            </a>
+            
+            <Link href="/" className="flex-1 py-4 bg-surface-container-higher border border-outline-variant text-on-surface font-headline font-bold text-xs md:text-sm tracking-[0.2em] uppercase transition-all hover:border-primary hover:text-primary active:scale-[0.98] flex justify-center items-center gap-2">
+              <span className="material-symbols-outlined text-lg">home</span>
+              RETURN TO BASE
+            </Link>
+          </div>
         </div>
       </div>
     </div>
