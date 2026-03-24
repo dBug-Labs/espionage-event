@@ -117,13 +117,13 @@ export default function RegisterPage() {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center p-6 terminal-bg relative">
         <div className="fixed inset-0 scanline opacity-20 pointer-events-none"></div>
-        
+
         <div className="bg-surface-container-low p-8 relative max-w-lg w-full border border-outline-variant/30">
           <div className="absolute top-0 right-0 p-4 font-headline text-[10px] text-outline-variant uppercase tracking-widest">
             Ref: PAY-XJ992
           </div>
-          <button 
-            onClick={() => setStep('form')} 
+          <button
+            onClick={() => setStep('form')}
             className="absolute top-4 left-4 font-headline text-[10px] text-primary uppercase tracking-widest hover:text-white transition-colors"
           >
             ← ABORT PAYMENT
@@ -153,7 +153,7 @@ export default function RegisterPage() {
             <div className="group">
               <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Transaction ID / UTR *</label>
               <div className="relative">
-                <input 
+                <input
                   className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.transactionId ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`}
                   placeholder="ENTER 12-DIGIT UTR"
                   value={transactionId}
@@ -189,7 +189,7 @@ export default function RegisterPage() {
 
       <nav className="flex justify-between items-center w-full px-6 py-4 fixed top-0 z-50 bg-[#0e0e0e] border-b border-white/10 shadow-[0_0_15px_rgba(255,0,0,0.1)]">
         <Link href="/" className="flex items-center gap-3">
-          <img src="/logo-dbug-removebg-preview.png" alt="dBug Labs" className="w-8 h-8 object-contain" />
+          <img src="/logog.png" alt="dBug Labs" className="w-8 h-8 object-contain" />
           <div className="flex flex-col">
             <div className="text-xl font-black text-red-600 dark:text-red-500 tracking-tighter font-headline leading-none">ESPIONAGE</div>
             <div className="text-[10px] text-gray-400 font-headline uppercase tracking-widest leading-none mt-1">by dBug Labs</div>
@@ -208,9 +208,9 @@ export default function RegisterPage() {
             <div className="absolute -bottom-2 -right-2 w-8 h-8 border-b-2 border-r-2 border-secondary-fixed"></div>
             <div className="bg-surface-container-lowest p-1 aspect-square overflow-hidden border border-outline-variant/20">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
-                className="w-full h-full object-cover grayscale brightness-50 contrast-125 group-hover:grayscale-0 transition-all duration-700" 
-                alt="Cyber board" 
+              <img
+                className="w-full h-full object-cover grayscale brightness-50 contrast-125 group-hover:grayscale-0 transition-all duration-700"
+                alt="Cyber board"
                 src="/images/enrollment-bg.jpg"
               />
             </div>
@@ -220,7 +220,7 @@ export default function RegisterPage() {
               <div className="w-2 h-2 bg-primary animate-pulse"></div>
               <span className="font-headline text-[10px] uppercase tracking-[0.3em] text-primary">System Online: Cryptographic Protocol Active</span>
             </div>
-            <h1 className="font-headline text-5xl font-black text-on-surface leading-[0.9] tracking-tighter uppercase">ESPIONAGE<br/><span className="text-primary-container">RECRUITMENT</span></h1>
+            <h1 className="font-headline text-5xl font-black text-on-surface leading-[0.9] tracking-tighter uppercase">ESPIONAGE<br /><span className="text-primary-container">RECRUITMENT</span></h1>
             <p className="text-on-surface-variant/80 text-sm leading-relaxed max-w-md">
               Initializing protocol 7-Delta. You are applying for a covert intelligence role. Your digital footprint will be scrubbed upon successful deployment. Total mission stake: <span className="text-secondary font-bold">₹{AMOUNT}.00</span>.
             </p>
@@ -254,9 +254,9 @@ export default function RegisterPage() {
               <div className="group col-span-1 md:col-span-2">
                 <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Agent Alias (Full Name) *</label>
                 <div className="relative">
-                  <input 
-                    className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.name ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`} 
-                    placeholder="GHOST_PROTOCOL" 
+                  <input
+                    className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.name ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`}
+                    placeholder="GHOST_PROTOCOL"
                     value={form.name}
                     onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
                   />
@@ -269,9 +269,9 @@ export default function RegisterPage() {
 
               <div className="group">
                 <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Secure Contact (Personal Email) *</label>
-                <input 
-                  className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.email ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`} 
-                  placeholder="AGENT@SECURE.NET" 
+                <input
+                  className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.email ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`}
+                  placeholder="AGENT@SECURE.NET"
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))}
@@ -281,9 +281,9 @@ export default function RegisterPage() {
 
               <div className="group">
                 <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Command Center (College Email) *</label>
-                <input 
-                  className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.collegeEmail ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`} 
-                  placeholder="XX1234@SRMIST.EDU.IN" 
+                <input
+                  className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.collegeEmail ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`}
+                  placeholder="XX1234@SRMIST.EDU.IN"
                   type="email"
                   value={form.collegeEmail}
                   onChange={(e) => setForm(p => ({ ...p, collegeEmail: e.target.value }))}
@@ -294,9 +294,9 @@ export default function RegisterPage() {
               <div className="group">
                 <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Agent ID (Registration No.) *</label>
                 <div className="relative">
-                  <input 
-                    className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.regNo ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`} 
-                    placeholder="RA2XXXXXXXXX" 
+                  <input
+                    className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.regNo ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`}
+                    placeholder="RA2XXXXXXXXX"
                     value={form.regNo}
                     onChange={(e) => setForm(p => ({ ...p, regNo: e.target.value.toUpperCase() }))}
                   />
@@ -310,9 +310,9 @@ export default function RegisterPage() {
               <div className="group">
                 <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Comm Channel (Phone) *</label>
                 <div className="relative">
-                  <input 
-                    className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.phone ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`} 
-                    placeholder="9876543210" 
+                  <input
+                    className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.phone ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`}
+                    placeholder="9876543210"
                     type="tel"
                     maxLength={10}
                     value={form.phone}
@@ -337,9 +337,9 @@ export default function RegisterPage() {
                   <div className="font-headline text-xs font-medium">AES-256_BIT</div>
                 </div>
               </div>
-              
-              <button 
-                type="submit" 
+
+              <button
+                type="submit"
                 className="w-full py-5 bg-primary text-on-primary font-headline font-black text-xl tracking-[0.2em] uppercase transition-all hover:bg-primary-container active:scale-[0.98] shadow-[0_0_20px_rgba(255,180,168,0.2)] flex items-center justify-center gap-4"
               >
                 ENROLL_AGENT
@@ -355,12 +355,12 @@ export default function RegisterPage() {
 
       <footer className="fixed bottom-0 w-full flex justify-between items-center px-8 py-2 z-50 bg-[#0e0e0e] border-t border-orange-500/20">
         <div className="font-headline text-[10px] uppercase tracking-[0.2em] text-zinc-600">
-            © 2026 CLASSIFIED DIRECTIVE // EYES ONLY
+          © 2026 CLASSIFIED DIRECTIVE // EYES ONLY
         </div>
         <div className="flex gap-6 items-center">
-            <a className="font-headline text-[10px] uppercase tracking-[0.2em] text-zinc-600 hover:text-orange-400 transition-all opacity-80 hover:opacity-100" href="#">SYSTEM_LOGS</a>
-            <a className="font-headline text-[10px] uppercase tracking-[0.2em] text-zinc-600 hover:text-orange-400 transition-all opacity-80 hover:opacity-100" href="#">MANUAL</a>
-            <a className="font-headline text-[10px] uppercase tracking-[0.2em] text-orange-500 underline opacity-80 hover:opacity-100" href="#">TERMINATE_SESSION</a>
+          <a className="font-headline text-[10px] uppercase tracking-[0.2em] text-zinc-600 hover:text-orange-400 transition-all opacity-80 hover:opacity-100" href="#">SYSTEM_LOGS</a>
+          <a className="font-headline text-[10px] uppercase tracking-[0.2em] text-zinc-600 hover:text-orange-400 transition-all opacity-80 hover:opacity-100" href="#">MANUAL</a>
+          <a className="font-headline text-[10px] uppercase tracking-[0.2em] text-orange-500 underline opacity-80 hover:opacity-100" href="#">TERMINATE_SESSION</a>
         </div>
       </footer>
     </div>

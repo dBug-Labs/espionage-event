@@ -74,7 +74,7 @@ export default function LoginPage() {
 
       <nav className="flex justify-between items-center w-full px-6 py-4 fixed top-0 z-50 bg-[#0e0e0e] border-b border-white/10 shadow-[0_0_15px_rgba(255,0,0,0.1)]">
         <Link href="/" className="flex items-center gap-3">
-          <img src="/logo-dbug-removebg-preview.png" alt="dBug Labs" className="w-8 h-8 object-contain" />
+          <img src="/logog.png" alt="dBug Labs" className="w-8 h-8 object-contain" />
           <div className="flex flex-col">
             <div className="text-xl font-black text-red-600 dark:text-red-500 tracking-tighter font-headline leading-none">ESPIONAGE</div>
             <div className="text-[10px] text-gray-400 font-headline uppercase tracking-widest leading-none mt-1">by dBug Labs</div>
@@ -91,7 +91,7 @@ export default function LoginPage() {
           <div className="absolute top-0 right-0 p-4 font-headline text-[10px] text-outline-variant uppercase tracking-widest">
             Ref: AUTH-PROTOCOL
           </div>
-          
+
           <div className="mb-10 text-center flex flex-col items-center">
             <span className="material-symbols-outlined text-primary text-5xl mb-4" style={{ fontVariationSettings: "'FILL' 1" }}>policy</span>
             <h2 className="font-headline text-3xl font-black uppercase tracking-tighter text-on-surface">
@@ -109,10 +109,10 @@ export default function LoginPage() {
                 <div className="group">
                   <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Secure Contact (Email) *</label>
                   <div className="relative">
-                    <input 
+                    <input
                       type="email"
-                      className={`w-full bg-surface-container-highest border-none border-b-2 ${error ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-4 placeholder:text-outline-variant/40 text-center`} 
-                      placeholder="AGENT@SECURE.NET" 
+                      className={`w-full bg-surface-container-highest border-none border-b-2 ${error ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-4 placeholder:text-outline-variant/40 text-center`}
+                      placeholder="AGENT@SECURE.NET"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSendOTP()}
@@ -123,7 +123,7 @@ export default function LoginPage() {
                   </div>
                   {error && <p className="text-error mt-2 text-center font-headline text-[10px] tracking-widest uppercase">{error}</p>}
                 </div>
-                
+
                 <button
                   className="w-full py-4 mt-6 bg-primary text-on-primary font-headline font-black text-lg tracking-[0.2em] uppercase transition-all hover:bg-primary-container active:scale-[0.98] shadow-[0_0_20px_rgba(255,180,168,0.2)] disabled:opacity-50 flex justify-center items-center gap-2"
                   onClick={handleSendOTP}
@@ -141,15 +141,15 @@ export default function LoginPage() {
                 <p className="font-headline text-sm text-primary text-center font-bold tracking-widest mb-6 border border-primary/20 bg-primary/5 py-2">
                   {email}
                 </p>
-                
+
                 {success && <p className="text-primary text-center font-headline text-[10px] tracking-widest uppercase mb-4 animate-pulse">{success}</p>}
-                
+
                 <div className="group mb-2">
                   <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block text-center">Enter 6-Digit Direct Verification Code *</label>
-                  <input 
+                  <input
                     type="text"
-                    className={`w-full bg-surface-container-highest border-none border-b-2 ${error ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline font-bold text-3xl tracking-[0.5em] transition-all px-4 py-4 placeholder:text-outline-variant/20 text-center`} 
-                    placeholder="000000" 
+                    className={`w-full bg-surface-container-highest border-none border-b-2 ${error ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline font-bold text-3xl tracking-[0.5em] transition-all px-4 py-4 placeholder:text-outline-variant/20 text-center`}
+                    placeholder="000000"
                     maxLength={6}
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -166,7 +166,7 @@ export default function LoginPage() {
                   {loading ? 'VERIFYING...' : 'AUTHENTICATE'}
                   {!loading && <span className="material-symbols-outlined text-lg">lock_open</span>}
                 </button>
-                
+
                 <div className="text-center mt-6 pt-4 border-t border-outline-variant/20">
                   <button
                     onClick={() => { setStep('email'); setError(''); setOtp(''); setSuccess(''); }}
@@ -180,14 +180,14 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-      
+
       <footer className="fixed bottom-0 w-full flex justify-between items-center px-8 py-2 z-50 bg-[#0e0e0e] border-t border-orange-500/20 mt-auto">
         <div className="font-headline text-[10px] uppercase tracking-[0.2em] text-zinc-600">
-            © 2026 CLASSIFIED DIRECTIVE // EYES ONLY
+          © 2026 CLASSIFIED DIRECTIVE // EYES ONLY
         </div>
         <div className="flex gap-6 items-center">
-            <a className="font-headline text-[10px] uppercase tracking-[0.2em] text-zinc-600 hover:text-orange-400 transition-all opacity-80 hover:opacity-100" href="#">SYSTEM_LOGS</a>
-            <a className="font-headline text-[10px] uppercase tracking-[0.2em] text-zinc-600 hover:text-orange-400 transition-all opacity-80 hover:opacity-100" href="#">MANUAL</a>
+          <a className="font-headline text-[10px] uppercase tracking-[0.2em] text-zinc-600 hover:text-orange-400 transition-all opacity-80 hover:opacity-100" href="#">SYSTEM_LOGS</a>
+          <a className="font-headline text-[10px] uppercase tracking-[0.2em] text-zinc-600 hover:text-orange-400 transition-all opacity-80 hover:opacity-100" href="#">MANUAL</a>
         </div>
       </footer>
     </div>

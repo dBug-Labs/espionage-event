@@ -367,7 +367,7 @@ This will also send shortlist emails to all selected participants.`)) return;
               ADMIN ROOT ACCESS
             </h2>
             <div className="h-px w-1/2 mx-auto bg-gradient-to-r from-transparent via-primary/50 to-transparent mt-4 mb-8"></div>
-            
+
             <div className="group mb-6 text-left">
               <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Clearance Code</label>
               <input
@@ -380,10 +380,10 @@ This will also send shortlist emails to all selected participants.`)) return;
               />
             </div>
             {authError && <p className="text-error font-headline text-[10px] uppercase tracking-widest mb-4">{authError}</p>}
-            
-            <button 
-              className="w-full py-4 bg-primary text-on-primary font-headline font-black text-xs tracking-[0.2em] uppercase transition-all hover:bg-primary-container active:scale-[0.98] shadow-[0_0_20px_rgba(255,85,64,0.2)] flex justify-center items-center gap-2" 
-              onClick={handleAuth} 
+
+            <button
+              className="w-full py-4 bg-primary text-on-primary font-headline font-black text-xs tracking-[0.2em] uppercase transition-all hover:bg-primary-container active:scale-[0.98] shadow-[0_0_20px_rgba(255,85,64,0.2)] flex justify-center items-center gap-2"
+              onClick={handleAuth}
               disabled={authLoading}
             >
               <span className="material-symbols-outlined text-sm">{authLoading ? 'autorenew' : 'lock_open'}</span>
@@ -399,13 +399,13 @@ This will also send shortlist emails to all selected participants.`)) return;
   return (
     <div className={wrapperClass + " pt-10 pb-20 px-4 md:px-8"}>
       <div className="fixed inset-0 scanline opacity-10 pointer-events-none z-0"></div>
-      
+
       <div className="relative z-10 max-w-[1400px] mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-6 border-b border-outline-variant/30 gap-6">
           <div>
             <div className="flex items-center gap-4 mb-2">
-              <img src="/logo-dbug-removebg-preview.png" alt="dBug Labs" className="w-10 h-10 object-contain" />
+              <img src="/logog.png" alt="dBug Labs" className="w-10 h-10 object-contain" />
               <div className="flex flex-col">
                 <h1 className="font-headline text-2xl md:text-3xl font-black uppercase tracking-widest text-on-surface leading-none">
                   <span className="text-primary glow-red">ESPIONAGE</span> — ADMIN TERMINAL
@@ -474,7 +474,7 @@ This will also send shortlist emails to all selected participants.`)) return;
 
         {/* Tab Content */}
         <div className="bg-surface-container-low border border-outline-variant/30 p-4 md:p-8 min-h-[500px]">
-          
+
           {/* ── Tab: Participants ── */}
           {activeTab === 'participants' && (
             <>

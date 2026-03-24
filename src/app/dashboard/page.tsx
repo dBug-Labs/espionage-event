@@ -98,11 +98,11 @@ export default function DashboardPage() {
   return (
     <div className="bg-background text-on-surface font-body selection:bg-primary selection:text-on-primary min-h-screen relative terminal-bg">
       <div className="fixed inset-0 scanlines z-[60] opacity-20"></div>
-      
+
       <header className="flex justify-between items-center w-full px-6 py-4 fixed top-0 z-50 bg-[#131313] border-b border-white/10 shadow-[0_0_15px_rgba(255,0,0,0.1)]">
         <div className="flex flex-col gap-1">
           <Link href="/" className="flex items-center gap-3">
-            <img src="/logo-dbug-removebg-preview.png" alt="dBug Labs" className="w-8 h-8 object-contain" />
+            <img src="/logog.png" alt="dBug Labs" className="w-8 h-8 object-contain" />
             <div className="flex flex-col">
               <div className="text-xl font-black text-red-600 dark:text-red-500 tracking-tighter font-headline leading-none">ESPIONAGE</div>
               <div className="text-[9px] text-gray-400 font-headline uppercase tracking-widest leading-none mt-1">by dBug Labs</div>
@@ -118,7 +118,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-4">
           <span className="material-symbols-outlined text-red-500 cursor-pointer hover:bg-red-500/10 p-2 transition-all">terminal</span>
           <span className="material-symbols-outlined text-red-500 cursor-pointer hover:bg-red-500/10 p-2 transition-all">security</span>
-          <button 
+          <button
             onClick={handleLogout}
             className="bg-primary-container text-on-primary-container px-4 py-1.5 font-headline text-xs font-bold tracking-widest uppercase active:scale-95 duration-75 brightness-125 hover:bg-red-600/20 hover:text-red-500 transition-all border border-transparent hover:border-red-500/50"
           >
@@ -303,7 +303,7 @@ export default function DashboardPage() {
             </div>
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-surface-container-low border-l-2 border-transparent opacity-50">
-                  <p className="text-xs text-on-surface-variant text-center w-full uppercase tracking-widest font-headline">Leaderboard is offline during live operations.</p>
+                <p className="text-xs text-on-surface-variant text-center w-full uppercase tracking-widest font-headline">Leaderboard is offline during live operations.</p>
               </div>
             </div>
           </div>

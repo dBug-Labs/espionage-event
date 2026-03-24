@@ -30,7 +30,7 @@ export default function LandingPage() {
       
       <nav className="bg-[#131313] border-b border-white/10 flex justify-between items-center w-full px-6 py-4 sticky top-0 z-40">
         <Link href="/" className="flex items-center gap-3">
-          <Image src="/logo-dbug-removebg-preview.png" alt="dBug Labs" width={32} height={32} className="object-contain" />
+          <Image src="/logog.png" alt="dBug Labs" width={32} height={32} className="object-contain" />
           <div className="flex flex-col">
             <div className="text-2xl font-black text-red-600 tracking-tighter uppercase font-headline leading-none">ESPIONAGE</div>
             <div className="text-[10px] text-gray-400 font-headline uppercase tracking-widest leading-none mt-1">by dBug Labs</div>

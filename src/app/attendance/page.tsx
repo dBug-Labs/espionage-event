@@ -11,9 +11,9 @@ export default function AttendancePage() {
   const [manualTeamId, setManualTeamId] = useState('');
   const [stats, setStats] = useState({ checkedIn: 0, totalPaid: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   const lastScannedRef = useRef<string>('');
-  
+
   const fetchStats = async () => {
     try {
       const res = await fetch('/api/attendance/stats', {
@@ -30,9 +30,9 @@ export default function AttendancePage() {
     if (isAuthenticated) {
       fetchStats();
       const interval = setInterval(fetchStats, 10000);
-      
-      const scanner = new Html5QrcodeScanner("reader", { 
-        fps: 10, 
+
+      const scanner = new Html5QrcodeScanner("reader", {
+        fps: 10,
         qrbox: { width: 250, height: 250 },
         aspectRatio: 1.0
       }, false);
@@ -63,7 +63,7 @@ export default function AttendancePage() {
   const markAttendance = async (teamId: string) => {
     if (isProcessing) return;
     if (lastScannedRef.current === teamId) return;
-    
+
     setIsProcessing(true);
     lastScannedRef.current = teamId;
     setScanResult(null);
@@ -74,9 +74,9 @@ export default function AttendancePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ teamId: teamId.trim() })
       });
-      
+
       const data = await res.json();
-      
+
       if (res.ok) {
         setScanResult({
           type: 'success',
@@ -84,9 +84,9 @@ export default function AttendancePage() {
           teamInfo: data
         });
         fetchStats();
-        
+
         const audio = new Audio('/success-beep.mp3');
-        audio.play().catch(()=>{}).then(() => {});
+        audio.play().catch(() => { }).then(() => { });
 
       } else if (data.alreadyCheckedIn) {
         setScanResult({
@@ -113,7 +113,7 @@ export default function AttendancePage() {
     }
   }
 
-  function onScanFailure(error: any) {}
+  function onScanFailure(error: any) { }
 
   const wrapperClass = "bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-hidden terminal-bg relative min-h-screen flex items-center justify-center p-6";
 
@@ -126,13 +126,13 @@ export default function AttendancePage() {
             <div className="absolute top-0 right-0 p-3 font-headline text-[8px] text-outline-variant uppercase tracking-widest">
               Ref: ORG-AUTH
             </div>
-            
+
             <span className="material-symbols-outlined text-primary text-5xl mb-4">admin_panel_settings</span>
             <h2 className="font-headline text-xl font-black uppercase tracking-widest text-on-surface mb-2">
               ORGANIZER ACCESS
             </h2>
             <div className="h-px w-1/2 mx-auto bg-gradient-to-r from-transparent via-primary/50 to-transparent mt-4 mb-8"></div>
-            
+
             <div className="group mb-6 text-left">
               <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Clearance Code</label>
               <input
@@ -143,7 +143,7 @@ export default function AttendancePage() {
                 className="w-full bg-surface-container-highest border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40"
               />
             </div>
-            
+
             <button className="w-full py-4 bg-primary text-on-primary font-headline font-black text-xs tracking-[0.2em] uppercase transition-all hover:bg-primary-container active:scale-[0.98] shadow-[0_0_20px_rgba(255,85,64,0.2)] flex justify-center items-center gap-2">
               <span className="material-symbols-outlined text-sm">lock_open</span>
               UNLOCK SYSTEM
@@ -161,7 +161,7 @@ export default function AttendancePage() {
       <nav className="flex justify-between items-center w-full px-6 py-4 fixed top-0 z-50 bg-[#0e0e0e] border-b border-outline-variant/30 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
         <div className="flex flex-col gap-1">
           <Link href="/" className="flex items-center gap-3">
-            <img src="/logo-dbug-removebg-preview.png" alt="dBug Labs" className="w-8 h-8 object-contain" />
+            <img src="/logog.png" alt="dBug Labs" className="w-8 h-8 object-contain" />
             <div className="flex flex-col">
               <div className="text-xl font-black text-primary tracking-tighter font-headline leading-none">ESPIONAGE</div>
               <div className="text-[9px] text-gray-400 font-headline uppercase tracking-widest leading-none mt-1">by dBug Labs</div>
@@ -181,7 +181,7 @@ export default function AttendancePage() {
       </nav>
 
       <div className="relative z-10 w-full max-w-xl mx-auto mt-12">
-        
+
         {/* Header & Stats */}
         <div className="text-center mb-8">
           <h1 className="font-headline text-3xl font-black uppercase text-on-surface tracking-widest mb-4">
@@ -243,14 +243,14 @@ export default function AttendancePage() {
 
         {/* Manual Entry Fallback */}
         <div className="flex gap-4 mb-8">
-          <input 
-            type="text" 
-            placeholder="MANUAL ID (HOU-001)" 
+          <input
+            type="text"
+            placeholder="MANUAL ID (HOU-001)"
             value={manualTeamId}
             onChange={(e) => setManualTeamId(e.target.value.toUpperCase())}
             className="flex-1 bg-surface-container-highest border border-outline-variant/50 focus:border-primary focus:ring-0 text-on-surface font-headline tracking-widest text-sm px-4 py-3 placeholder:text-outline-variant/40 outline-none uppercase"
           />
-          <button 
+          <button
             onClick={() => manualTeamId && markAttendance(manualTeamId)}
             className="px-8 bg-primary text-on-primary font-headline font-bold text-xs tracking-widest uppercase hover:bg-primary-container active:scale-[0.98] transition-all disabled:opacity-50 border border-primary/50"
             disabled={isProcessing}
@@ -264,7 +264,7 @@ export default function AttendancePage() {
           <div className={`p-6 border relative overflow-hidden animate-[fadeInUp_0.3s_ease] ${scanResult.type === 'success' ? 'bg-green-500/10 border-green-500/30' : scanResult.type === 'warning' ? 'bg-orange-500/10 border-orange-500/30' : 'bg-error/10 border-error/30'}`}>
             {/* Background absolute tint */}
             <div className={`absolute inset-0 opacity-10 ${scanResult.type === 'success' ? 'bg-green-500' : scanResult.type === 'warning' ? 'bg-orange-500' : 'bg-error'}`}></div>
-            
+
             <div className="relative z-10">
               <div className="flex items-center gap-4 mb-4">
                 <span className={`material-symbols-outlined text-4xl ${scanResult.type === 'success' ? 'text-green-500' : scanResult.type === 'warning' ? 'text-orange-500' : 'text-error glow-red'}`}>
@@ -274,12 +274,12 @@ export default function AttendancePage() {
                   {scanResult.message}
                 </h3>
               </div>
-              
+
               {scanResult.teamInfo && (
                 <div className="pt-4 border-t border-white/10 mt-2">
                   <p className="font-headline text-[10px] tracking-widest uppercase text-secondary mb-1">TEAM ID</p>
                   <p className="font-headline text-2xl font-black text-on-surface tracking-widest mb-4">{scanResult.teamInfo.teamId}</p>
-                  
+
                   <div className="bg-surface-container-highest border border-outline-variant/20 p-4">
                     <p className="font-body text-on-surface font-bold text-lg mb-1">{scanResult.teamInfo.teamName}</p>
                     <p className="font-mono text-xs text-secondary mt-2 border-t border-outline-variant/10 pt-2"><span className="text-on-surface-variant">COMMANDER:</span> {scanResult.teamInfo.leaderName} <span className="mx-2 text-outline-variant">|</span> <span className="text-on-surface-variant">SQUAD SIZE:</span> {scanResult.teamInfo.membersCount}</p>
