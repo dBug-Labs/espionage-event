@@ -64,6 +64,11 @@ html {
 body {
   background-color: var(--color-surface, #131313);
   color: var(--color-on-surface, #e5e2e1);
+  cursor: url('/cursor.svg') 12 12, auto;
+}
+
+a, button, [role="button"], input, select, textarea {
+  cursor: url('/cursor-pointer.svg') 12 12, pointer !important;
 }
 
 .scanlines {

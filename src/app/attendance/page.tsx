@@ -159,10 +159,19 @@ export default function AttendancePage() {
       <div className="fixed inset-0 scanline opacity-10 pointer-events-none z-0"></div>
 
       <nav className="flex justify-between items-center w-full px-6 py-4 fixed top-0 z-50 bg-[#0e0e0e] border-b border-outline-variant/30 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-        <Link href="/" className="text-xl font-black text-primary tracking-tighter font-headline flex items-center gap-2">
-          <span className="material-symbols-outlined">qr_code_scanner</span>
-          ESPIONAGE // ORG_SCANNER
-        </Link>
+        <div className="flex flex-col gap-1">
+          <Link href="/" className="flex items-center gap-3">
+            <img src="/logo-dbug-removebg-preview.png" alt="dBug Labs" className="w-8 h-8 object-contain" />
+            <div className="flex flex-col">
+              <div className="text-xl font-black text-primary tracking-tighter font-headline leading-none">ESPIONAGE</div>
+              <div className="text-[9px] text-gray-400 font-headline uppercase tracking-widest leading-none mt-1">by dBug Labs</div>
+            </div>
+          </Link>
+          <div className="text-[10px] tracking-widest text-primary font-bold flex items-center gap-1">
+            <span className="material-symbols-outlined text-[10px]">qr_code_scanner</span>
+            ORG_SCANNER
+          </div>
+        </div>
         <div className="hidden md:flex gap-6 items-center">
           <div className="font-headline text-[10px] uppercase tracking-widest text-secondary flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>

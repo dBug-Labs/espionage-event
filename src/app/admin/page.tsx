@@ -404,9 +404,15 @@ This will also send shortlist emails to all selected participants.`)) return;
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-6 border-b border-outline-variant/30 gap-6">
           <div>
-            <h1 className="font-headline text-2xl md:text-3xl font-black uppercase tracking-widest text-on-surface mb-2">
-              <span className="text-primary glow-red">ESPIONAGE</span> — ADMIN TERMINAL
-            </h1>
+            <div className="flex items-center gap-4 mb-2">
+              <img src="/logo-dbug-removebg-preview.png" alt="dBug Labs" className="w-10 h-10 object-contain" />
+              <div className="flex flex-col">
+                <h1 className="font-headline text-2xl md:text-3xl font-black uppercase tracking-widest text-on-surface leading-none">
+                  <span className="text-primary glow-red">ESPIONAGE</span> — ADMIN TERMINAL
+                </h1>
+                <div className="text-[10px] text-secondary font-headline uppercase tracking-widest leading-none mt-1">by dBug Labs</div>
+              </div>
+            </div>
             <p className="text-secondary font-headline text-[10px] tracking-widest uppercase flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
               Live telemetry active

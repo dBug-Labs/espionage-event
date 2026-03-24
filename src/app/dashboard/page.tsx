@@ -100,8 +100,15 @@ export default function DashboardPage() {
       <div className="fixed inset-0 scanlines z-[60] opacity-20"></div>
       
       <header className="flex justify-between items-center w-full px-6 py-4 fixed top-0 z-50 bg-[#131313] border-b border-white/10 shadow-[0_0_15px_rgba(255,0,0,0.1)]">
-        <div className="text-xl font-black text-red-600 dark:text-red-500 tracking-tighter font-headline">
-          INTEL_TERMINAL_V1.0
+        <div className="flex flex-col gap-1">
+          <Link href="/" className="flex items-center gap-3">
+            <img src="/logo-dbug-removebg-preview.png" alt="dBug Labs" className="w-8 h-8 object-contain" />
+            <div className="flex flex-col">
+              <div className="text-xl font-black text-red-600 dark:text-red-500 tracking-tighter font-headline leading-none">ESPIONAGE</div>
+              <div className="text-[9px] text-gray-400 font-headline uppercase tracking-widest leading-none mt-1">by dBug Labs</div>
+            </div>
+          </Link>
+          <div className="text-[10px] tracking-widest text-primary font-bold">INTEL_TERMINAL_V1.0</div>
         </div>
         <nav className="hidden md:flex gap-8 items-center">
           <a className="font-headline uppercase tracking-widest text-sm text-red-500 font-bold border-b-2 border-red-500 pb-1" href="/dashboard">MISSIONS</a>
@@ -305,7 +312,7 @@ export default function DashboardPage() {
 
       <footer className="fixed bottom-0 w-full flex justify-between items-center px-8 py-2 z-50 bg-[#0e0e0e] border-t border-orange-500/20">
         <div className="font-headline text-[10px] uppercase tracking-[0.2em] text-zinc-600">
-          © 2024 CLASSIFIED DIRECTIVE // EYES ONLY
+          © 2026 CLASSIFIED DIRECTIVE // EYES ONLY
         </div>
         <div className="flex gap-6">
           <button onClick={handleLogout} className="font-headline text-[10px] uppercase tracking-[0.2em] text-zinc-600 hover:text-orange-400 transition-colors">TERMINATE_SESSION</button>

@@ -25,7 +25,7 @@ export async function sendConfirmationEmail(participant: ParticipantEmailData) {
   const eventDate = process.env.EVENT_DATE || 'TBA';
   const eventTime = process.env.EVENT_TIME || 'TBA';
   const eventVenue = process.env.EVENT_VENUE || 'TBA';
-  const loginLink = "https://your-deployed-domain.com/login"; // Replace this link later
+  const loginLink = "https://espionage-event.vercel.app/login";
 
   const htmlBody = `
 <!DOCTYPE html>

@@ -3,18 +3,44 @@
 import Link from 'next/link';
 import Image from 'next/image';
 
+import { useState, useEffect } from 'react';
+
 export default function LandingPage() {
+  const [activeSection, setActiveSection] = useState('');
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = ['mission', 'operations', 'intelligence', 'rules'];
+      let current = '';
+      for (const s of sections) {
+        const el = document.getElementById(s);
+        if (el && window.scrollY >= el.offsetTop - 150) {
+          current = s;
+        }
+      }
+      setActiveSection(current);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <>
       <div className="fixed inset-0 scanlines z-50 pointer-events-none opacity-20"></div>
       
       <nav className="bg-[#131313] border-b border-white/10 flex justify-between items-center w-full px-6 py-4 sticky top-0 z-40">
-        <div className="text-2xl font-black text-red-600 tracking-tighter uppercase font-headline">ESPIONAGE</div>
+        <Link href="/" className="flex items-center gap-3">
+          <Image src="/logo-dbug-removebg-preview.png" alt="dBug Labs" width={32} height={32} className="object-contain" />
+          <div className="flex flex-col">
+            <div className="text-2xl font-black text-red-600 tracking-tighter uppercase font-headline leading-none">ESPIONAGE</div>
+            <div className="text-[10px] text-gray-400 font-headline uppercase tracking-widest leading-none mt-1">by dBug Labs</div>
+          </div>
+        </Link>
         <div className="hidden md:flex gap-8 items-center font-headline uppercase tracking-widest text-sm">
-          <a className="text-red-500 border-b-2 border-red-600 pb-1" href="#mission">Mission Briefing</a>
-          <a className="text-gray-400 hover:text-red-400 transition-colors" href="#operations">Operations</a>
-          <a className="text-gray-400 hover:text-red-400 transition-colors" href="#intelligence">Intelligence Flow</a>
-          <a className="text-gray-400 hover:text-red-400 transition-colors" href="#rules">Rules</a>
+          <a className={activeSection === 'mission' ? "text-red-500 border-b-2 border-red-600 pb-1" : "text-gray-400 hover:text-red-400 transition-colors"} href="#mission">Mission Briefing</a>
+          <a className={activeSection === 'operations' ? "text-red-500 border-b-2 border-red-600 pb-1" : "text-gray-400 hover:text-red-400 transition-colors"} href="#operations">Operations</a>
+          <a className={activeSection === 'intelligence' ? "text-red-500 border-b-2 border-red-600 pb-1" : "text-gray-400 hover:text-red-400 transition-colors"} href="#intelligence">Intelligence Flow</a>
+          <a className={activeSection === 'rules' ? "text-red-500 border-b-2 border-red-600 pb-1" : "text-gray-400 hover:text-red-400 transition-colors"} href="#rules">Rules</a>
         </div>
         <Link href="/register">
           <button className="bg-primary text-on-primary px-6 py-2 font-headline uppercase font-bold tracking-widest hover:brightness-125 transition-all active:scale-95 glow-red">
