@@ -140,7 +140,7 @@ export default function RegisterPage() {
           <div className="flex justify-center mb-8">
             <div className="bg-white p-2 rounded block shadow-[0_0_30px_rgba(255,180,168,0.15)]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/qr-code.jpeg" alt="Payment QR Code" className="w-48 h-48" />
+              <img src="/qr-code.png" alt="Payment QR Code" className="w-48 h-48" />
             </div>
           </div>
 
