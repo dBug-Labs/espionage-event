@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
-import Team from '@/models/Team';
+import Participant from '@/models/Participant';
 
 function checkAuth(req: NextRequest) {
   const auth = req.headers.get('authorization');
@@ -14,39 +14,34 @@ export async function GET(req: NextRequest) {
   }
   try {
     await connectToDatabase();
-    const teams = await Team.find().sort({ createdAt: 1 }).lean();
+    const participants = await Participant.find().sort({ createdAt: 1 }).lean();
 
     const rows: string[] = [
-      'Team ID,Team Name,Leader Name,Leader Email,Leader College Email,Leader Reg No,Leader Phone,Member 1 Name,Member 1 Email,Member 1 College Email,Member 1 Reg No,Member 2 Name,Member 2 Email,Member 2 College Email,Member 2 Reg No,Team Size,Amount Paid,Payment ID,Payment Status,Attendance,Checked In At,Registered At',
+      'Team ID,Name,Email,College Email,Reg No,Phone,Team Type,Partner Name,Partner Email,Partner College Email,Partner Reg No,Partner Phone,RSVP Status,RSVP At,Attendance,Checked In At,Round 1 Score,Shortlisted,Registered At',
     ];
 
-    for (const t of teams) {
-      const m1 = t.members[0];
-      const m2 = t.members[1];
+    for (const p of participants) {
       rows.push(
         [
-          t.teamId,
-          `"${t.teamName}"`,
-          `"${t.teamLeader.name}"`,
-          t.teamLeader.email,
-          t.teamLeader.collegeEmail || '',
-          t.teamLeader.regNo || '',
-          t.teamLeader.phone,
-          m1 ? `"${m1.name}"` : '',
-          m1 ? m1.email : '',
-          m1 ? (m1.collegeEmail || '') : '',
-          m1 ? (m1.regNo || '') : '',
-          m2 ? `"${m2.name}"` : '',
-          m2 ? m2.email : '',
-          m2 ? (m2.collegeEmail || '') : '',
-          m2 ? (m2.regNo || '') : '',
-          t.teamSize,
-          t.amountPaid,
-          t.paymentId,
-          t.paymentStatus,
-          t.attendance?.present ? 'Present' : 'Absent',
-          t.attendance?.checkedAt ? `"${new Date(t.attendance.checkedAt).toLocaleString('en-IN')}"` : 'N/A',
-          `"${new Date(t.createdAt).toLocaleString('en-IN')}"`,
+          p.participantId,
+          `"${p.name}"`,
+          p.email,
+          p.collegeEmail,
+          p.regNo,
+          p.phone,
+          p.teamType,
+          p.partner ? `"${p.partner.name}"` : '',
+          p.partner ? p.partner.email : '',
+          p.partner ? p.partner.collegeEmail : '',
+          p.partner ? p.partner.regNo : '',
+          p.partner ? p.partner.phone : '',
+          p.rsvpStatus,
+          p.rsvpAt ? `"${new Date(p.rsvpAt).toLocaleString('en-IN')}"` : 'N/A',
+          p.attendance?.present ? 'Present' : 'Absent',
+          p.attendance?.checkedAt ? `"${new Date(p.attendance.checkedAt).toLocaleString('en-IN')}"` : 'N/A',
+          p.round1Score ?? '',
+          p.isShortlisted ? 'Yes' : 'No',
+          `"${new Date(p.createdAt).toLocaleString('en-IN')}"`,
         ].join(',')
       );
     }
@@ -56,7 +51,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse(csvContent, {
       headers: {
         'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="housie-teams-${Date.now()}.csv"`,
+        'Content-Disposition': `attachment; filename="espionage-participants-${Date.now()}.csv"`,
       },
     });
   } catch (err) {

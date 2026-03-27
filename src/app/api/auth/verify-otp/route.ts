@@ -31,14 +31,14 @@ export async function POST(req: NextRequest) {
     // Mark as verified and clean up
     await OTP.deleteMany({ email: email.trim().toLowerCase() });
 
-    // Get participant data
+    // Get participant data — only RSVP-confirmed team leaders
     const participant = await Participant.findOne({
       email: email.trim().toLowerCase(),
-      paymentStatus: 'PAID',
+      rsvpStatus: 'CONFIRMED',
     });
 
     if (!participant) {
-      return NextResponse.json({ error: 'Participant not found.' }, { status: 404 });
+      return NextResponse.json({ error: 'Participant not found or RSVP not confirmed.' }, { status: 404 });
     }
 
     // Generate a simple session token

@@ -7,7 +7,8 @@ interface RegistrationData {
   participantId: string;
   name: string;
   email: string;
-  amountPaid: number;
+  teamType: 'solo' | 'duo';
+  partnerName?: string;
 }
 
 export default function SuccessPage() {
@@ -27,7 +28,7 @@ export default function SuccessPage() {
     }
   }, []);
 
-  // Confetti effect with tactical red/orange colors
+  // Confetti effect
   useEffect(() => {
     if (!data) return;
     const canvas = canvasRef.current;
@@ -121,38 +122,43 @@ export default function SuccessPage() {
               MISSION <span className="text-primary">ACCEPTED</span>
             </h1>
             <p className="text-secondary font-headline text-[10px] md:text-xs tracking-widest uppercase">
-              Enrollment recorded. Payment verification in progress.
+              Registration recorded. Confirmation email sent!
             </p>
             <div className="h-px w-3/4 bg-gradient-to-r from-transparent via-primary/50 to-transparent mt-8"></div>
           </div>
 
           <div className="border border-primary/20 bg-primary/5 p-8 text-center mb-8 relative overflow-hidden group">
             <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <p className="font-headline text-[10px] tracking-[0.2em] uppercase text-primary mb-2 opacity-80">Assigned Agent ID</p>
+            <p className="font-headline text-[10px] tracking-[0.2em] uppercase text-primary mb-2 opacity-80">Assigned Team ID</p>
             <p className="font-headline text-4xl md:text-6xl font-black text-primary tracking-[0.2em] relative z-10 glow-red">
               {data.participantId}
             </p>
             <p className="text-on-surface font-headline tracking-widest uppercase mt-4 text-sm font-bold">{data.name}</p>
+            {data.teamType === 'duo' && data.partnerName && (
+              <p className="text-on-surface-variant font-headline tracking-widest uppercase mt-1 text-xs">& {data.partnerName}</p>
+            )}
+            <div className="mt-3 inline-block bg-primary/10 border border-primary/20 text-primary px-3 py-1 font-headline text-[10px] tracking-widest uppercase">
+              {data.teamType === 'duo' ? 'DUO ENTRY' : 'SOLO ENTRY'}
+            </div>
           </div>
 
           <div className="space-y-6 mb-10">
             <div className="border border-outline-variant/30 bg-surface-container-highest p-6 relative">
               <h3 className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-4 absolute -top-2 left-4 bg-surface-container-highest px-2">
-                Agent Intel
+                What&apos;s Next
               </h3>
-              <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 gap-2">
-                <span className="text-on-surface-variant font-headline text-[10px] md:text-xs uppercase tracking-widest">Secure Contact</span>
-                <span className="text-on-surface font-headline font-bold text-xs md:text-sm tracking-widest">{data.email}</span>
-              </div>
-              <div className="h-px w-full bg-outline-variant/20 mb-4"></div>
-              <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
-                <span className="text-on-surface-variant font-headline text-[10px] md:text-xs uppercase tracking-widest">Clearance Fee</span>
-                <div className="flex items-center gap-4">
-                  <span className="text-on-surface font-headline font-bold text-lg tracking-widest">₹{data.amountPaid}</span>
-                  <div className="bg-primary/10 border border-primary/20 text-primary px-3 py-1 font-headline text-[10px] tracking-widest uppercase flex items-center gap-1 animate-pulse">
-                    <span className="material-symbols-outlined text-[10px] hidden md:block">pending</span>
-                    PENDING VERIFICATION
-                  </div>
+              <div className="space-y-4 mt-2">
+                <div className="flex items-start gap-3">
+                  <span className="material-symbols-outlined text-primary text-sm mt-0.5">check_circle</span>
+                  <span className="text-sm text-on-surface-variant">Confirmation email sent to your inbox</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="material-symbols-outlined text-secondary text-sm mt-0.5">schedule</span>
+                  <span className="text-sm text-on-surface-variant">Await RSVP email before the event to confirm your spot</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="material-symbols-outlined text-secondary text-sm mt-0.5">qr_code</span>
+                  <span className="text-sm text-on-surface-variant">After RSVP, you&apos;ll receive your attendance QR code + dashboard access</span>
                 </div>
               </div>
             </div>
@@ -162,7 +168,7 @@ export default function SuccessPage() {
               <div>
                 <p className="font-headline font-bold text-xs md:text-sm tracking-widest text-on-surface uppercase mb-1">Save This Intel</p>
                 <p className="text-xs text-on-surface-variant leading-relaxed">
-                  Capture a screenshot of your Agent ID. Once verified, you will receive an encrypted email with a QR code for event entry.
+                  Take a screenshot of your Team ID. Join the WhatsApp group for real-time updates!
                 </p>
               </div>
             </div>

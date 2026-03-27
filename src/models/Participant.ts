@@ -1,5 +1,13 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
+export interface IPartner {
+  name: string;
+  email: string;
+  collegeEmail: string;
+  regNo: string;
+  phone: string;
+}
+
 export interface IParticipant extends Document {
   participantId: string;
   name: string;
@@ -7,9 +15,11 @@ export interface IParticipant extends Document {
   collegeEmail: string;
   regNo: string;
   phone: string;
-  amountPaid: number;
-  paymentId: string;
-  paymentStatus: 'PAID' | 'FAILED' | 'REFUNDED' | 'PENDING';
+  teamType: 'solo' | 'duo';
+  partner?: IPartner;
+  rsvpToken: string;
+  rsvpStatus: 'PENDING' | 'CONFIRMED' | 'DECLINED';
+  rsvpAt: Date | null;
   attendance: {
     present: boolean;
     checkedAt: Date | null;
@@ -17,10 +27,10 @@ export interface IParticipant extends Document {
   round1Score: number | null;
   round1SubmittedAt: Date | null;
   round1Warnings: number;
-  round1QuestionIds: string[]; // IDs of assigned MCQs for this participant
+  round1QuestionIds: string[];
   isShortlisted: boolean;
   round2Score: number | null;
-  round2QuestionIds: string[]; // IDs of assigned questions for this participant
+  round2QuestionIds: string[];
   round2Warnings: number;
   round2Submissions: {
     questionId: string;
@@ -32,6 +42,14 @@ export interface IParticipant extends Document {
   createdAt: Date;
 }
 
+const PartnerSchema = new Schema<IPartner>({
+  name: { type: String, required: true },
+  email: { type: String, required: true },
+  collegeEmail: { type: String, required: true },
+  regNo: { type: String, required: true },
+  phone: { type: String, required: true },
+});
+
 const ParticipantSchema = new Schema<IParticipant>(
   {
     participantId: { type: String, required: true, unique: true },
@@ -40,13 +58,15 @@ const ParticipantSchema = new Schema<IParticipant>(
     collegeEmail: { type: String, required: true },
     regNo: { type: String, required: true },
     phone: { type: String, required: true },
-    amountPaid: { type: Number, required: true, default: 70 },
-    paymentId: { type: String, required: true },
-    paymentStatus: {
+    teamType: { type: String, enum: ['solo', 'duo'], default: 'solo' },
+    partner: { type: PartnerSchema, default: undefined },
+    rsvpToken: { type: String, default: '' },
+    rsvpStatus: {
       type: String,
-      enum: ['PAID', 'FAILED', 'REFUNDED', 'PENDING'],
+      enum: ['PENDING', 'CONFIRMED', 'DECLINED'],
       default: 'PENDING',
     },
+    rsvpAt: { type: Date, default: null },
     attendance: {
       present: { type: Boolean, default: false },
       checkedAt: { type: Date, default: null },

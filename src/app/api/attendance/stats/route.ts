@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
-import Team from '@/models/Team';
+import Participant from '@/models/Participant';
 
 export async function GET(req: NextRequest) {
   try {
@@ -11,12 +11,12 @@ export async function GET(req: NextRequest) {
 
     await connectToDatabase();
     
-    const [totalPaid, checkedIn] = await Promise.all([
-      Team.countDocuments({ paymentStatus: 'PAID' }),
-      Team.countDocuments({ paymentStatus: 'PAID', 'attendance.present': true })
+    const [totalConfirmed, checkedIn] = await Promise.all([
+      Participant.countDocuments({ rsvpStatus: 'CONFIRMED' }),
+      Participant.countDocuments({ rsvpStatus: 'CONFIRMED', 'attendance.present': true })
     ]);
 
-    return NextResponse.json({ totalPaid, checkedIn });
+    return NextResponse.json({ totalPaid: totalConfirmed, checkedIn });
 
   } catch (err) {
     console.error('[attendance stats]', err);
