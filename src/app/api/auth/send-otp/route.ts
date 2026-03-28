@@ -23,15 +23,15 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
 
-    // Check if participant exists and is paid
+    // Check if participant exists and has confirmed RSVP (only team leaders can login)
     const participant = await Participant.findOne({
       email: email.trim().toLowerCase(),
-      paymentStatus: 'PAID',
+      rsvpStatus: 'CONFIRMED',
     });
 
     if (!participant) {
       return NextResponse.json(
-        { error: 'No verified registration found for this email. Make sure your payment is verified.' },
+        { error: 'No RSVP-confirmed registration found for this email. Only team leaders who have confirmed their RSVP can access the dashboard.' },
         { status: 404 }
       );
     }

@@ -11,44 +11,192 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-interface ParticipantEmailData {
+// ─── 1. Registration Confirmation Email (sent to ALL participants) ───
+
+interface RegistrationEmailData {
   participantId: string;
   name: string;
   email: string;
-  amountPaid: number;
+  teamType: 'solo' | 'duo';
+  leaderName: string;
+  partnerName?: string;
 }
 
-export async function sendConfirmationEmail(participant: ParticipantEmailData) {
-  const qrDataUrl = await QRCode.toDataURL(participant.participantId, { width: 200, margin: 2 });
-
+export async function sendRegistrationConfirmationEmail(data: RegistrationEmailData) {
   const whatsappLink = process.env.NEXT_PUBLIC_WHATSAPP_LINK || '#';
-  const eventDate = process.env.EVENT_DATE || 'TBA';
-  const eventTime = process.env.EVENT_TIME || 'TBA';
-  const eventVenue = process.env.EVENT_VENUE || 'TBA';
-  const loginLink = "https://espionage-event.vercel.app/login";
+
+  const teamLabel = data.teamType === 'duo'
+    ? `<strong style="color: #FF5540;">DUO</strong> (${data.leaderName}${data.partnerName ? ` & ${data.partnerName}` : ''})`
+    : `<strong style="color: #FF5540;">SOLO</strong>`;
 
   const htmlBody = `
 <!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"></head>
 <body style="font-family: 'Inter', 'Space Grotesk', 'Courier New', monospace; background: #0E0E0E; color: #E5E2E1; margin: 0; padding: 0;">
-  <div style="max-width: 600px; margin: 0 auto; background: #131313; border: 1px solid rgba(255, 85, 64, 0.2); box-shadow: 0 0 30px rgba(255, 85, 64, 0.05); border-radius: 0; overflow: hidden; position: relative;">
+  <div style="max-width: 600px; margin: 0 auto; background: #131313; border: 1px solid rgba(255, 85, 64, 0.2); box-shadow: 0 0 30px rgba(255, 85, 64, 0.05); overflow: hidden;">
     <div style="background: rgba(255, 85, 64, 0.05); padding: 40px 30px; text-align: center; border-bottom: 1px solid rgba(255, 85, 64, 0.2);">
       <h1 style="margin: 0; font-size: 36px; color: #FF5540; letter-spacing: 0.2em; font-weight: 900;">ESPIONAGE</h1>
-      <p style="margin: 8px 0 0; color: #FFB4A8; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;">MISSION CONFIRMED</p>
+      <p style="margin: 8px 0 0; color: #FFB4A8; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;">REGISTRATION CONFIRMED</p>
     </div>
     <div style="padding: 40px 30px;">
-      <p style="color: #ABAAA9; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em;">Agent <strong style="color: #E5E2E1;">${participant.name}</strong>,</p>
-      <p style="color: #ABAAA9; font-size: 14px; margin-bottom: 24px; line-height: 1.6;">Your enrollment has been verified. You are now cleared for Operation Espionage. The intelligence terminal is awaiting your connection.</p>
+      <p style="color: #ABAAA9; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em;">Agent <strong style="color: #E5E2E1;">${data.name}</strong>,</p>
+      <p style="color: #ABAAA9; font-size: 14px; margin-bottom: 24px; line-height: 1.6;">Thank you for registering for <strong style="color: #FF5540;">ESPIONAGE</strong>! Your data has been recorded successfully. You are now in our database of potential operatives.</p>
 
-      <div style="background: rgba(255, 85, 64, 0.05); border-top: 1px solid rgba(255, 85, 64, 0.2); border-bottom: 1px solid rgba(255, 85, 64, 0.2); padding: 32px 24px; text-align: center; margin-bottom: 32px;">
-        <p style="font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #FF5540; margin-bottom: 12px; opacity: 0.8;">Assigned Agent ID</p>
-        <div style="font-size: 42px; font-weight: 900; color: #FF5540; letter-spacing: 0.2em; text-shadow: 0 0 15px rgba(255, 85, 64, 0.4);">${participant.participantId}</div>
+      <div style="background: rgba(255, 85, 64, 0.05); border-top: 1px solid rgba(255, 85, 64, 0.2); border-bottom: 1px solid rgba(255, 85, 64, 0.2); padding: 24px; text-align: center; margin-bottom: 24px;">
+        <p style="font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #FF5540; margin-bottom: 8px; opacity: 0.8;">Team ID</p>
+        <div style="font-size: 36px; font-weight: 900; color: #FF5540; letter-spacing: 0.2em; text-shadow: 0 0 15px rgba(255, 85, 64, 0.4);">${data.participantId}</div>
+        <p style="font-size: 12px; color: #ABAAA9; margin-top: 12px;">Entry Type: ${teamLabel}</p>
       </div>
 
-      <div style="margin: 20px 0; border: 1px solid rgba(255, 255, 255, 0.1); background: #1C1C1D; padding: 20px;">
-        <p style="font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #ABAAA9; margin-bottom: 8px;">Clearance Fee Verified</p>
-        <p style="font-size: 24px; font-weight: bold; color: #E5E2E1; margin: 0;">₹${participant.amountPaid}</p>
+      <div style="background: #1C1C1D; border-left: 3px solid #FF5540; padding: 20px; margin: 24px 0;">
+        <p style="margin: 0 0 8px 0; font-size: 13px; color: #FF5540; font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase;">⏰ WHAT'S NEXT?</p>
+        <p style="margin: 0; font-size: 13px; color: #ABAAA9; line-height: 1.6;">Before the event, you will receive an <strong style="color: #E5E2E1;">RSVP email</strong> to confirm your attendance. Stay tuned on your registered email and also join our WhatsApp group for updates!</p>
+      </div>
+
+      <div style="margin: 32px 0; text-align: center;">
+        <a href="${whatsappLink}" style="display: inline-block; background: #25D366; color: white; text-align: center; padding: 14px 28px; text-decoration: none; font-weight: bold; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase;">📱 JOIN MISSION COMMS (WHATSAPP)</a>
+      </div>
+
+      <p style="color: #ABAAA9; font-size: 12px; text-align: center; margin-top: 32px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 24px;">Keep your Team ID <strong style="color: #FF5540;">${data.participantId}</strong> safe. You'll need it throughout the event!</p>
+    </div>
+    <div style="background: #0E0E0E; padding: 24px; text-align: center; border-top: 1px solid rgba(255, 85, 64, 0.2);">
+      <p style="color: #848383; font-size: 10px; margin: 0; letter-spacing: 0.2em; text-transform: uppercase;">CLASSIFIED DIRECTIVE // EYES ONLY</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const textBody = `
+Agent ${data.name},
+
+Thank you for registering for ESPIONAGE!
+
+Team ID: ${data.participantId}
+Entry Type: ${data.teamType.toUpperCase()}
+
+What's Next:
+Before the event, you will receive an RSVP email to confirm your attendance.
+
+Join WhatsApp Group: ${whatsappLink}
+
+CLASSIFIED DIRECTIVE // EYES ONLY
+  `;
+
+  await transporter.sendMail({
+    from: `"Espionage | DBUG" <${process.env.SMTP_USER}>`,
+    to: data.email,
+    subject: `✅ Registration Confirmed — Team ${data.participantId} | Espionage`,
+    text: textBody,
+    html: htmlBody,
+  });
+}
+
+// ─── 2. RSVP Email (sent to TEAM LEADER only) ───
+
+interface RSVPEmailData {
+  participantId: string;
+  name: string;
+  email: string;
+  rsvpToken: string;
+  teamType: 'solo' | 'duo';
+  partnerName?: string;
+}
+
+export async function sendRSVPEmail(data: RSVPEmailData) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://espionage-event.vercel.app';
+  const rsvpLink = `${siteUrl.replace(/\/$/, '')}/rsvp?token=${data.rsvpToken}`;
+  const eventDate = process.env.EVENT_DATE || 'TBA';
+  const eventTime = process.env.EVENT_TIME || 'TBA';
+  const eventVenue = process.env.EVENT_VENUE || 'TBA';
+
+  const teamLabel = data.teamType === 'duo'
+    ? `${data.name}${data.partnerName ? ` & ${data.partnerName}` : ''}`
+    : data.name;
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="font-family: 'Inter', 'Space Grotesk', 'Courier New', monospace; background: #0E0E0E; color: #E5E2E1; margin: 0; padding: 0;">
+  <div style="max-width: 600px; margin: 0 auto; background: #131313; border: 1px solid rgba(255, 85, 64, 0.2); box-shadow: 0 0 30px rgba(255, 85, 64, 0.05); overflow: hidden;">
+    <div style="background: rgba(255, 85, 64, 0.05); padding: 40px 30px; text-align: center; border-bottom: 1px solid rgba(255, 85, 64, 0.2);">
+      <h1 style="margin: 0; font-size: 36px; color: #FF5540; letter-spacing: 0.2em; font-weight: 900;">ESPIONAGE</h1>
+      <p style="margin: 8px 0 0; color: #FFB4A8; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;">🎯 RSVP REQUIRED</p>
+    </div>
+    <div style="padding: 40px 30px;">
+      <p style="color: #ABAAA9; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em;">Agent <strong style="color: #E5E2E1;">${data.name}</strong>,</p>
+      <p style="color: #ABAAA9; font-size: 14px; margin-bottom: 24px; line-height: 1.6;">The mission is <strong style="color: #FF5540;">TOMORROW</strong>! We need you to confirm your attendance so we can finalize the roster. Seats are limited — first come, first served.</p>
+
+      <div style="background: rgba(255, 85, 64, 0.05); border: 1px solid rgba(255, 85, 64, 0.2); padding: 24px; text-align: center; margin-bottom: 24px;">
+        <p style="font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #FF5540; margin-bottom: 8px;">Team: ${data.participantId}</p>
+        <p style="font-size: 14px; color: #E5E2E1; font-weight: bold;">${teamLabel}</p>
+      </div>
+
+      <div style="background: #1C1C1D; border-left: 3px solid #FF5540; padding: 20px; margin: 24px 0;">
+        <p style="margin: 0 0 8px 0; font-size: 13px; color: #E5E2E1;"><strong>📅 DATE:</strong> ${eventDate}</p>
+        <p style="margin: 0 0 8px 0; font-size: 13px; color: #E5E2E1;"><strong>🕐 TIME:</strong> ${eventTime}</p>
+        <p style="margin: 0; font-size: 13px; color: #E5E2E1;"><strong>📍 VENUE:</strong> ${eventVenue}</p>
+      </div>
+
+      <div style="margin: 40px 0; text-align: center;">
+        <a href="${rsvpLink}" style="display: inline-block; background: #FF5540; color: #FFFFFF; text-align: center; padding: 18px 40px; text-decoration: none; font-weight: 900; font-size: 16px; letter-spacing: 0.2em; text-transform: uppercase; box-shadow: 0 0 20px rgba(255, 85, 64, 0.3);">CONFIRM RSVP</a>
+      </div>
+
+      <p style="color: #848383; font-size: 11px; text-align: center; line-height: 1.6;">⚠️ Limited to <strong style="color: #FF5540;">50 teams / 100 members</strong>. Once the cap is hit, RSVP will close. Confirm ASAP!</p>
+
+      <p style="color: #ABAAA9; font-size: 12px; text-align: center; margin-top: 32px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 24px;">This RSVP link is unique to your team. Do not share it with others.</p>
+    </div>
+    <div style="background: #0E0E0E; padding: 24px; text-align: center; border-top: 1px solid rgba(255, 85, 64, 0.2);">
+      <p style="color: #848383; font-size: 10px; margin: 0; letter-spacing: 0.2em; text-transform: uppercase;">CLASSIFIED DIRECTIVE // EYES ONLY</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await transporter.sendMail({
+    from: `"Espionage | DBUG" <${process.env.SMTP_USER}>`,
+    to: data.email,
+    subject: `🎯 RSVP Required — Confirm Your Attendance | Espionage`,
+    html: htmlBody,
+    text: `Agent ${data.name}, the mission is tomorrow! Confirm your RSVP: ${rsvpLink}. Limited to 50 teams / 100 members.`,
+  });
+}
+
+// ─── 3. Attendance QR Email (sent to RSVP-confirmed team leaders only) ───
+
+interface AttendanceQREmailData {
+  participantId: string;
+  name: string;
+  email: string;
+}
+
+export async function sendAttendanceQREmail(data: AttendanceQREmailData) {
+  const qrDataUrl = await QRCode.toDataURL(data.participantId, { width: 200, margin: 2 });
+  const loginLink = process.env.NEXT_PUBLIC_SITE_URL
+    ? `${process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '')}/login`
+    : 'https://espionage-event.vercel.app/login';
+  const eventDate = process.env.EVENT_DATE || 'TBA';
+  const eventTime = process.env.EVENT_TIME || 'TBA';
+  const eventVenue = process.env.EVENT_VENUE || 'TBA';
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="font-family: 'Inter', 'Space Grotesk', 'Courier New', monospace; background: #0E0E0E; color: #E5E2E1; margin: 0; padding: 0;">
+  <div style="max-width: 600px; margin: 0 auto; background: #131313; border: 1px solid rgba(255, 85, 64, 0.2); box-shadow: 0 0 30px rgba(255, 85, 64, 0.05); overflow: hidden;">
+    <div style="background: rgba(255, 85, 64, 0.05); padding: 40px 30px; text-align: center; border-bottom: 1px solid rgba(255, 85, 64, 0.2);">
+      <h1 style="margin: 0; font-size: 36px; color: #FF5540; letter-spacing: 0.2em; font-weight: 900;">ESPIONAGE</h1>
+      <p style="margin: 8px 0 0; color: #FFB4A8; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;">🎟️ YOUR ENTRY PASS</p>
+    </div>
+    <div style="padding: 40px 30px;">
+      <p style="color: #ABAAA9; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em;">Agent <strong style="color: #E5E2E1;">${data.name}</strong>,</p>
+      <p style="color: #ABAAA9; font-size: 14px; margin-bottom: 24px; line-height: 1.6;">You've been <strong style="color: #FF5540;">shortlisted</strong> for the mission! Below is your attendance QR code — show this at the entry checkpoint.</p>
+
+      <div style="background: rgba(255, 85, 64, 0.05); border-top: 1px solid rgba(255, 85, 64, 0.2); border-bottom: 1px solid rgba(255, 85, 64, 0.2); padding: 32px 24px; text-align: center; margin-bottom: 24px;">
+        <p style="font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #FF5540; margin-bottom: 12px; opacity: 0.8;">Agent ID</p>
+        <div style="font-size: 42px; font-weight: 900; color: #FF5540; letter-spacing: 0.2em; text-shadow: 0 0 15px rgba(255, 85, 64, 0.4);">${data.participantId}</div>
       </div>
 
       <div style="text-align: center; margin: 32px 0;">
@@ -65,14 +213,10 @@ export async function sendConfirmationEmail(participant: ParticipantEmailData) {
       </div>
 
       <div style="margin: 40px 0; text-align: center;">
-        <a href="${loginLink}" style="display: inline-block; background: #FF5540; color: #FFFFFF; text-align: center; padding: 16px 32px; text-decoration: none; font-weight: 900; font-size: 14px; letter-spacing: 0.2em; text-transform: uppercase; box-shadow: 0 0 20px rgba(255, 85, 64, 0.3);">LOGIN TO SECURE DASHBOARD</a>
+        <a href="${loginLink}" style="display: inline-block; background: #FF5540; color: #FFFFFF; text-align: center; padding: 16px 32px; text-decoration: none; font-weight: 900; font-size: 14px; letter-spacing: 0.2em; text-transform: uppercase; box-shadow: 0 0 20px rgba(255, 85, 64, 0.3);">LOGIN TO DASHBOARD</a>
       </div>
 
-      <div style="margin: 24px 0; text-align: center;">
-        <a href="${whatsappLink}" style="display: inline-block; background: #25D366; color: white; text-align: center; padding: 12px 24px; text-decoration: none; font-weight: bold; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;">📱 JOIN MISSION COMMS (WHATSAPP)</a>
-      </div>
-
-      <p style="color: #ABAAA9; font-size: 12px; text-align: center; margin-top: 32px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 24px;">Keep your Agent ID <strong style="color: #FF5540;">${participant.participantId}</strong> guarded. Use your registered email to access the intelligence dashboard.</p>
+      <p style="color: #ABAAA9; font-size: 12px; text-align: center; margin-top: 32px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 24px;">Use your registered email to access the intelligence dashboard on event day.</p>
     </div>
     <div style="background: #0E0E0E; padding: 24px; text-align: center; border-top: 1px solid rgba(255, 85, 64, 0.2);">
       <p style="color: #848383; font-size: 10px; margin: 0; letter-spacing: 0.2em; text-transform: uppercase;">CLASSIFIED DIRECTIVE // EYES ONLY</p>
@@ -81,33 +225,12 @@ export async function sendConfirmationEmail(participant: ParticipantEmailData) {
 </body>
 </html>`;
 
-  const textBody = `
-Agent ${participant.name},
-
-Your enrollment for Espionage has been verified!
-
-Agent ID: ${participant.participantId}
-Amount Paid: ₹${participant.amountPaid}
-
-Event Details:
-Date: ${eventDate}
-Time: ${eventTime}
-Venue: ${eventVenue}
-
-Login to Dashboard: ${loginLink}
-Join WhatsApp Group: ${whatsappLink}
-
-Use your registered email to login to the dashboard.
-
-CLASSIFIED DIRECTIVE // EYES ONLY
-  `;
-
   await transporter.sendMail({
     from: `"Espionage | DBUG" <${process.env.SMTP_USER}>`,
-    to: participant.email,
-    subject: `🕵️ Mission Confirmed — Agent ${participant.participantId} | Espionage`,
-    text: textBody,
+    to: data.email,
+    subject: `🎟️ Your Entry Pass — Agent ${data.participantId} | Espionage`,
     html: htmlBody,
+    text: `Agent ${data.name}, you've been shortlisted! Your Agent ID is ${data.participantId}. Date: ${eventDate}, Time: ${eventTime}, Venue: ${eventVenue}. Login: ${loginLink}`,
     attachments: [
       {
         filename: 'qr-code.png',
@@ -119,15 +242,19 @@ CLASSIFIED DIRECTIVE // EYES ONLY
   });
 }
 
+// ─── 4. Shortlist / Round 2 Email (sent to ALL participants of shortlisted teams) ───
+
 export async function sendShortlistEmail(participant: { name: string; email: string; participantId: string }) {
-  const loginLink = "https://your-deployed-domain.com/login"; // Replace this link later
+  const loginLink = process.env.NEXT_PUBLIC_SITE_URL
+    ? `${process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '')}/login`
+    : 'https://espionage-event.vercel.app/login';
 
   const htmlBody = `
 <!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"></head>
 <body style="font-family: 'Inter', 'Space Grotesk', 'Courier New', monospace; background: #0E0E0E; color: #E5E2E1; margin: 0; padding: 0;">
-  <div style="max-width: 500px; margin: 0 auto; background: #131313; border: 1px solid rgba(255, 85, 64, 0.2); box-shadow: 0 0 30px rgba(255, 85, 64, 0.05); border-radius: 0; overflow: hidden; position: relative;">
+  <div style="max-width: 500px; margin: 0 auto; background: #131313; border: 1px solid rgba(255, 85, 64, 0.2); box-shadow: 0 0 30px rgba(255, 85, 64, 0.05); overflow: hidden;">
     <div style="background: rgba(255, 85, 64, 0.05); padding: 40px 30px; text-align: center; border-bottom: 1px solid rgba(255, 85, 64, 0.2);">
       <h1 style="margin: 0; font-size: 32px; color: #FF5540; letter-spacing: 0.2em; font-weight: 900;">ESPIONAGE</h1>
       <p style="margin: 8px 0 0; color: #FFB4A8; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;">⚡ CLASSIFIED BRIEFING</p>

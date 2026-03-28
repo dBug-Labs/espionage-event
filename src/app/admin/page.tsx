@@ -2,6 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
+interface Partner {
+  name: string;
+  email: string;
+  collegeEmail: string;
+  regNo: string;
+  phone: string;
+}
+
 interface Participant {
   _id: string;
   participantId: string;
@@ -10,9 +18,10 @@ interface Participant {
   collegeEmail: string;
   regNo: string;
   phone: string;
-  amountPaid: number;
-  paymentId: string;
-  paymentStatus: 'PAID' | 'FAILED' | 'REFUNDED' | 'PENDING';
+  teamType: 'solo' | 'duo';
+  partner?: Partner;
+  rsvpStatus: 'PENDING' | 'CONFIRMED' | 'DECLINED';
+  rsvpAt: string | null;
   attendance?: { present: boolean; checkedAt: string };
   round1Score: number | null;
   round1SubmittedAt: string | null;
@@ -81,6 +90,9 @@ export default function AdminPage() {
   const [newNotif, setNewNotif] = useState({ title: '', message: '', type: 'info' });
   const [shortlistCount, setShortlistCount] = useState(30);
   const [shortlisting, setShortlisting] = useState(false);
+
+  const [sendingRSVP, setSendingRSVP] = useState(false);
+  const [sendingQR, setSendingQR] = useState(false);
 
   // Questions State
   const [mcqQuestions, setMcqQuestions] = useState<MCQQuestion[]>([]);
@@ -192,9 +204,7 @@ export default function AdminPage() {
   }
 
   async function handleShortlist() {
-    if (!confirm(`Shortlist the top ${shortlistCount} participants by Round 1 score?\
-\
-This will also send shortlist emails to all selected participants.`)) return;
+    if (!confirm(`Shortlist the top ${shortlistCount} teams by Round 1 score?\n\nThis will also send shortlist emails to all team members.`)) return;
     setShortlisting(true);
     try {
       const res = await fetch('/api/admin/shortlist', {
@@ -207,6 +217,37 @@ This will also send shortlist emails to all selected participants.`)) return;
       fetchParticipants(savedPassword);
     } catch { alert('Shortlisting failed.'); }
     finally { setShortlisting(false); }
+  }
+
+  async function handleSendRSVP() {
+    if (!confirm('Send RSVP emails to ALL registered team leaders who haven\'t received one yet?')) return;
+    setSendingRSVP(true);
+    try {
+      const res = await fetch('/api/admin/send-rsvp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: savedPassword }),
+      });
+      const data = await res.json();
+      alert(data.message || 'Done!');
+      fetchParticipants(savedPassword);
+    } catch { alert('Failed to send RSVP emails.'); }
+    finally { setSendingRSVP(false); }
+  }
+
+  async function handleSendAttendanceQR() {
+    if (!confirm('Send attendance QR emails to ALL RSVP-confirmed teams?\n\nThis includes venue, time, QR code, and dashboard login link.')) return;
+    setSendingQR(true);
+    try {
+      const res = await fetch('/api/admin/send-attendance-qr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: savedPassword }),
+      });
+      const data = await res.json();
+      alert(data.message || 'Done!');
+    } catch { alert('Failed to send attendance QR emails.'); }
+    finally { setSendingQR(false); }
   }
 
   async function handleCreateNotification() {
@@ -342,16 +383,21 @@ This will also send shortlist emails to all selected participants.`)) return;
     p.regNo.toLowerCase().includes(search.toLowerCase())
   );
 
+  const totalMembers = participants.reduce((sum, p) => sum + (p.teamType === 'duo' ? 2 : 1), 0);
+  const rsvpConfirmed = participants.filter((p) => p.rsvpStatus === 'CONFIRMED').length;
+  const rsvpConfirmedMembers = participants.filter((p) => p.rsvpStatus === 'CONFIRMED').reduce((sum, p) => sum + (p.teamType === 'duo' ? 2 : 1), 0);
+
   const stats = {
     total: participants.length,
-    paid: participants.filter((p) => p.paymentStatus === 'PAID').length,
-    revenue: participants.filter((p) => p.paymentStatus === 'PAID').reduce((s, p) => s + p.amountPaid, 0),
+    totalMembers,
+    rsvpConfirmed,
+    rsvpConfirmedMembers,
     checkedIn: participants.filter((p) => p.attendance?.present).length,
     round1Done: participants.filter((p) => p.round1SubmittedAt).length,
     shortlisted: participants.filter((p) => p.isShortlisted).length,
   };
 
-  const statusColor = (s: string) => s === 'PAID' ? 'text-green-500 bg-green-500/10 border-green-500/40' : s === 'PENDING' ? 'text-orange-500 bg-orange-500/10 border-orange-500/40' : 'text-error bg-error/10 border-error/40';
+  const rsvpColor = (s: string) => s === 'CONFIRMED' ? 'text-green-500 bg-green-500/10 border-green-500/40' : s === 'PENDING' ? 'text-orange-500 bg-orange-500/10 border-orange-500/40' : 'text-error bg-error/10 border-error/40';
 
   const wrapperClass = "bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-hidden terminal-bg relative min-h-screen";
 
@@ -435,10 +481,10 @@ This will also send shortlist emails to all selected participants.`)) return;
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           {[
-            { label: 'Registered', value: stats.total, icon: 'group', color: 'text-purple-500 glow-purple' },
-            { label: 'Verified', value: stats.paid, icon: 'verified_user', color: 'text-green-500 glow-green' },
-            { label: 'Revenue', value: `₹${stats.revenue}`, icon: 'payments', color: 'text-primary glow-red' },
-            { label: 'Checked In', value: stats.checkedIn, icon: 'how_to_reg', color: 'text-blue-500 glow-blue' },
+            { label: 'Teams', value: stats.total, icon: 'group', color: 'text-purple-500 glow-purple' },
+            { label: 'Members', value: stats.totalMembers, icon: 'groups', color: 'text-blue-500 glow-blue' },
+            { label: 'RSVP Yes', value: `${stats.rsvpConfirmed}/${50}`, icon: 'how_to_reg', color: 'text-green-500 glow-green' },
+            { label: 'RSVP Members', value: `${stats.rsvpConfirmedMembers}/${100}`, icon: 'verified', color: 'text-primary glow-red' },
             { label: 'R1 Done', value: stats.round1Done, icon: 'psychology', color: 'text-cyan-500 glow-cyan' },
             { label: 'Shortlisted', value: stats.shortlisted, icon: 'military_tech', color: 'text-orange-500 glow-orange' },
           ].map((s) => (
@@ -505,7 +551,7 @@ This will also send shortlist emails to all selected participants.`)) return;
                   <table className="w-full text-left border-collapse min-w-[1000px]">
                     <thead>
                       <tr className="bg-[#0a0a0a] border-b border-outline-variant text-[9px] font-headline tracking-widest uppercase text-primary">
-                        {['ID', 'Name', 'Email', 'Reg No', 'Phone', 'Attendance', 'Amount', 'Status', 'Payment ID', 'Actions'].map(h => (
+                        {['ID', 'Name', 'Email', 'Reg No', 'Phone', 'Type', 'Partner', 'RSVP', 'Attendance', 'Actions'].map(h => (
                           <th key={h} className="p-4">{h}</th>
                         ))}
                       </tr>
@@ -519,34 +565,21 @@ This will also send shortlist emails to all selected participants.`)) return;
                           <td className="p-4 text-on-surface-variant font-mono">{p.regNo}</td>
                           <td className="p-4 text-on-surface-variant font-mono">{p.phone}</td>
                           <td className="p-4">
+                            <span className={`font-headline text-[8px] tracking-widest px-2 py-1 border rounded-sm ${p.teamType === 'duo' ? 'text-blue-400 bg-blue-500/10 border-blue-500/40' : 'text-secondary bg-surface-container-highest border-outline-variant/40'}`}>
+                              {p.teamType.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="p-4 text-on-surface-variant text-[10px]">
+                            {p.partner ? p.partner.name : '—'}
+                          </td>
+                          <td className="p-4">
+                            <span className={`font-headline text-[8px] tracking-widest px-2 py-1 border rounded-sm flex items-center justify-center max-w-fit ${rsvpColor(p.rsvpStatus)}`}>
+                              {p.rsvpStatus}
+                            </span>
+                          </td>
+                          <td className="p-4">
                             {p.attendance?.present ? <span className="text-green-500 material-symbols-outlined text-[16px]">check_circle</span> : <span className="text-outline-variant material-symbols-outlined text-[16px]">cancel</span>}
                           </td>
-                          <td className="p-4 font-mono font-bold text-on-surface">₹{p.amountPaid}</td>
-                          <td className="p-4">
-                            <span className={`font-headline text-[8px] tracking-widest px-2 py-1 border rounded-sm flex items-center justify-center max-w-fit ${statusColor(p.paymentStatus)}`}>
-                              {p.paymentStatus}
-                            </span>
-                            {p.paymentStatus === 'PENDING' && (
-                              <button
-                                onClick={async () => {
-                                  if (!confirm(`Verify payment for ${p.participantId}?`)) return;
-                                  try {
-                                    const res = await fetch('/api/admin/verify-payment', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${savedPassword}` },
-                                      body: JSON.stringify({ participantId: p.participantId }),
-                                    });
-                                    if (res.ok) fetchParticipants(savedPassword);
-                                    else alert('Failed');
-                                  } catch { alert('Error'); }
-                                }}
-                                className="mt-2 text-[8px] font-headline tracking-widest bg-primary text-on-primary px-2 py-1 outline-none hover:bg-primary-container"
-                              >
-                                VERIFY MANUAL
-                              </button>
-                            )}
-                          </td>
-                          <td className="p-4 font-mono text-[10px] text-secondary max-w-[150px] truncate" title={p.paymentId}>{p.paymentId}</td>
                           <td className="p-4">
                             <button onClick={() => handleDeleteParticipant(p.participantId)} className="text-secondary hover:text-error transition-colors" title="Delete">
                               <span className="material-symbols-outlined text-[18px]">delete</span>
@@ -564,7 +597,7 @@ This will also send shortlist emails to all selected participants.`)) return;
 
           {/* ── Tab: Event Controls ── */}
           {activeTab === 'controls' && (
-            <div className="max-w-3xl grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="bg-[#0a0a0a] border border-outline-variant/30 p-6">
                 <h3 className="font-headline text-sm text-primary mb-6 tracking-[0.2em] uppercase flex items-center gap-2">
                   <span className="material-symbols-outlined text-[18px]">toggle_on</span>
@@ -588,31 +621,68 @@ This will also send shortlist emails to all selected participants.`)) return;
                 ))}
               </div>
 
-              <div className="bg-[#0a0a0a] border border-outline-variant/30 p-6 h-fit border-t-4 border-t-primary">
-                <h3 className="font-headline text-sm text-primary mb-4 tracking-[0.2em] uppercase flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[18px]">gavel</span>
-                  Shortlist Command
-                </h3>
-                <p className="text-secondary font-body text-xs leading-relaxed mb-6">
-                  Select the top N participants by Round 1 score. They will be marked as shortlisted and receive notification emails.
-                </p>
-                <div className="flex gap-4">
-                  <div className="relative w-24">
-                    <span className="absolute top-1/2 -translate-y-1/2 left-3 font-headline text-[10px] text-secondary">TOP</span>
-                    <input
-                      type="number"
-                      value={shortlistCount}
-                      onChange={(e) => setShortlistCount(Number(e.target.value))}
-                      className="w-full bg-surface-container-highest border border-outline-variant/50 focus:border-primary text-on-surface font-headline px-10 py-3 text-center"
-                    />
+              <div className="space-y-6">
+                {/* RSVP Controls */}
+                <div className="bg-[#0a0a0a] border border-outline-variant/30 p-6 border-t-4 border-t-green-500">
+                  <h3 className="font-headline text-sm text-green-500 mb-4 tracking-[0.2em] uppercase flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px]">mail</span>
+                    RSVP Controls
+                  </h3>
+                  <p className="text-secondary font-body text-xs leading-relaxed mb-4">
+                    Send RSVP emails to all team leaders. They must confirm to secure their spot. Cap: <strong className="text-green-400">50 teams / 100 members</strong>.
+                  </p>
+                  <div className="bg-surface-container-highest border border-outline-variant/30 p-3 mb-4 text-center">
+                    <span className="font-headline text-[10px] tracking-widest uppercase text-secondary">
+                      RSVP: <strong className="text-green-500">{stats.rsvpConfirmed}</strong>/50 teams • <strong className="text-green-500">{stats.rsvpConfirmedMembers}</strong>/100 members
+                    </span>
                   </div>
-                  <button
-                    onClick={handleShortlist}
-                    disabled={shortlisting}
-                    className="flex-1 bg-primary text-on-primary font-headline font-bold text-[10px] tracking-widest uppercase hover:bg-primary-container transition-colors disabled:opacity-50"
-                  >
-                    {shortlisting ? 'PROCESSING...' : 'EXECUTE O.R.D.E.R'}
-                  </button>
+                  <div className="flex flex-col gap-3">
+                    <button
+                      onClick={handleSendRSVP}
+                      disabled={sendingRSVP}
+                      className="w-full py-3 bg-green-600 text-white font-headline font-bold text-[10px] tracking-widest uppercase hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">{sendingRSVP ? 'sync' : 'send'}</span>
+                      {sendingRSVP ? 'SENDING...' : 'SEND RSVP EMAILS'}
+                    </button>
+                    <button
+                      onClick={handleSendAttendanceQR}
+                      disabled={sendingQR}
+                      className="w-full py-3 bg-primary text-on-primary font-headline font-bold text-[10px] tracking-widest uppercase hover:bg-primary-container transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">{sendingQR ? 'sync' : 'qr_code'}</span>
+                      {sendingQR ? 'SENDING...' : 'SEND ATTENDANCE QR EMAILS'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Shortlist */}
+                <div className="bg-[#0a0a0a] border border-outline-variant/30 p-6 border-t-4 border-t-primary">
+                  <h3 className="font-headline text-sm text-primary mb-4 tracking-[0.2em] uppercase flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px]">gavel</span>
+                    Shortlist Command
+                  </h3>
+                  <p className="text-secondary font-body text-xs leading-relaxed mb-6">
+                    Select the top N teams by Round 1 score. All team members will be notified via email.
+                  </p>
+                  <div className="flex gap-4">
+                    <div className="relative w-24">
+                      <span className="absolute top-1/2 -translate-y-1/2 left-3 font-headline text-[10px] text-secondary">TOP</span>
+                      <input
+                        type="number"
+                        value={shortlistCount}
+                        onChange={(e) => setShortlistCount(Number(e.target.value))}
+                        className="w-full bg-surface-container-highest border border-outline-variant/50 focus:border-primary text-on-surface font-headline px-10 py-3 text-center"
+                      />
+                    </div>
+                    <button
+                      onClick={handleShortlist}
+                      disabled={shortlisting}
+                      className="flex-1 bg-primary text-on-primary font-headline font-bold text-[10px] tracking-widest uppercase hover:bg-primary-container transition-colors disabled:opacity-50"
+                    >
+                      {shortlisting ? 'PROCESSING...' : 'EXECUTE O.R.D.E.R'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -624,7 +694,7 @@ This will also send shortlist emails to all selected participants.`)) return;
               <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead>
                   <tr className="bg-[#0a0a0a] border-b border-outline-variant text-[9px] font-headline tracking-widest uppercase text-primary">
-                    {['Rank', 'ID', 'Name', 'Score', 'Warnings', 'Submitted', 'Target'].map((h) => (
+                    {['Rank', 'ID', 'Name', 'Type', 'Score', 'Warnings', 'Submitted', 'Target'].map((h) => (
                       <th key={h} className="p-4">{h}</th>
                     ))}
                   </tr>
@@ -638,6 +708,11 @@ This will also send shortlist emails to all selected participants.`)) return;
                         <td className="p-4 font-headline font-bold">#{idx + 1}</td>
                         <td className="p-4 font-mono">{p.participantId}</td>
                         <td className="p-4 font-bold text-on-surface">{p.name}</td>
+                        <td className="p-4">
+                          <span className={`font-headline text-[8px] tracking-widest px-2 py-0.5 border rounded-sm ${p.teamType === 'duo' ? 'text-blue-400 border-blue-500/40' : 'text-secondary border-outline-variant/40'}`}>
+                            {p.teamType.toUpperCase()}
+                          </span>
+                        </td>
                         <td className="p-4 font-headline text-lg glow-red text-primary font-black">{p.round1Score}</td>
                         <td className={`p-4 ${p.round1Warnings > 0 ? 'text-error' : 'text-secondary'}`}>
                           {p.round1Warnings > 0 ? `⚠️ ${p.round1Warnings}` : 'CLEAN'}
@@ -723,6 +798,12 @@ This will also send shortlist emails to all selected participants.`)) return;
                   LOAD ESPIONAGE DEFAULTS
                 </button>
               </div>
+
+              {questionsLoading && (
+                <div className="flex items-center justify-center p-12">
+                  <span className="material-symbols-outlined text-3xl text-primary animate-spin">settings</span>
+                </div>
+              )}
 
               {qTab === 'mcq' ? (
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">

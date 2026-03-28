@@ -62,7 +62,7 @@ export default function LandingPage() {
           
           <div className="relative z-10 max-w-5xl">
             <div className="inline-block border border-secondary text-secondary px-4 py-1 mb-6 font-label uppercase tracking-[0.3em] text-xs">
-              Terminal Access: Authorized
+              Free Entry // Solo or Duo // Terminal Access: Authorized
             </div>
             <h1 className="text-7xl md:text-9xl font-headline font-black text-primary tracking-tighter mb-4 filter drop-shadow-[0_0_20px_rgba(255,85,64,0.4)]">
               ESPIONAGE
@@ -93,7 +93,7 @@ export default function LandingPage() {
               <h2 className="font-headline text-4xl font-bold text-primary uppercase tracking-tighter mb-8">Mission Briefing</h2>
               <div className="space-y-6 text-on-surface-variant font-body leading-relaxed text-lg">
                 <p>Welcome, Agent. You are entering a theatre of digital warfare where code is the only currency and logic is your primary weapon.</p>
-                <p><span className="text-secondary font-bold uppercase">The Objective:</span> Espionage is a high-stakes technical competition designed to push your programming prowess to the brink.</p>
+                <p><span className="text-secondary font-bold uppercase">The Objective:</span> Espionage is a high-stakes technical competition designed to push your programming prowess to the brink. Registration is <span className="text-primary font-bold">FREE</span> — enter <span className="text-primary">Solo</span> or as a <span className="text-primary">Duo</span>.</p>
                 <p>Navigate through a series of encrypted challenges involving advanced debugging, complex algorithms, and rapid-fire problem solving. Every keystroke is monitored.</p>
                 <div className="p-4 bg-surface-container-high border-l-4 border-secondary">
                   <span className="text-secondary font-headline font-bold block mb-1">REAL-TIME SURVEILLANCE:</span>
