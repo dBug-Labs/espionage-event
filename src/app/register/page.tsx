@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-interface FormData {
+interface MemberData {
   name: string;
   email: string;
   collegeEmail: string;
@@ -14,7 +14,15 @@ interface FormData {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [form, setForm] = useState<FormData>({
+  const [teamType, setTeamType] = useState<'solo' | 'duo'>('solo');
+  const [form, setForm] = useState<MemberData>({
+    name: '',
+    email: '',
+    collegeEmail: '',
+    regNo: '',
+    phone: '',
+  });
+  const [partner, setPartner] = useState<MemberData>({
     name: '',
     email: '',
     collegeEmail: '',
@@ -23,10 +31,6 @@ export default function RegisterPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<'form' | 'qr-payment' | 'submitting'>('form');
-  const [transactionId, setTransactionId] = useState('');
-
-  const AMOUNT = 70;
 
   function validateEmail(e: string) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
@@ -42,6 +46,14 @@ export default function RegisterPage() {
     if (!validateEmail(form.collegeEmail)) errs.collegeEmail = 'Enter a valid college email.';
     if (!form.regNo.trim()) errs.regNo = 'Registration number is required.';
     if (!validatePhone(form.phone)) errs.phone = 'Enter a valid 10-digit mobile number.';
+
+    if (teamType === 'duo') {
+      if (!partner.name.trim()) errs.partnerName = 'Partner name is required.';
+      if (!validateEmail(partner.email)) errs.partnerEmail = 'Enter a valid partner email.';
+      if (!validateEmail(partner.collegeEmail)) errs.partnerCollegeEmail = 'Enter a valid partner college email.';
+      if (!partner.regNo.trim()) errs.partnerRegNo = 'Partner registration number is required.';
+      if (!validatePhone(partner.phone)) errs.partnerPhone = 'Enter a valid partner phone number.';
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -49,16 +61,7 @@ export default function RegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate()) return;
-    setStep('qr-payment');
-  }
-
-  async function handleFinalSubmit() {
-    if (!transactionId.trim()) {
-      setErrors({ transactionId: 'Transaction ID is required.' });
-      return;
-    }
     setLoading(true);
-    setStep('submitting');
 
     try {
       const res = await fetch('/api/register-manual', {
@@ -72,7 +75,14 @@ export default function RegisterPage() {
             regNo: form.regNo,
             phone: form.phone,
           },
-          transactionId: transactionId.trim(),
+          teamType,
+          partner: teamType === 'duo' ? {
+            name: partner.name,
+            email: partner.email,
+            collegeEmail: partner.collegeEmail,
+            regNo: partner.regNo,
+            phone: partner.phone,
+          } : undefined,
         }),
       });
       const data = await res.json();
@@ -80,7 +90,6 @@ export default function RegisterPage() {
       if (!res.ok) {
         alert(data.error || 'Failed to submit registration.');
         setLoading(false);
-        setStep('qr-payment');
         return;
       }
 
@@ -89,18 +98,18 @@ export default function RegisterPage() {
         participantId: data.participantId,
         name: form.name,
         email: form.email,
-        amountPaid: AMOUNT,
+        teamType,
+        partnerName: teamType === 'duo' ? partner.name : undefined,
       }));
       router.push('/success');
     } catch (err) {
       console.error('Submission Error:', err);
       alert('Something went wrong. Please try again.');
       setLoading(false);
-      setStep('qr-payment');
     }
   }
 
-  if (step === 'submitting') {
+  if (loading) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center flex-col gap-6 terminal-bg">
         <div className="fixed inset-0 scanline opacity-20 pointer-events-none"></div>
@@ -113,75 +122,8 @@ export default function RegisterPage() {
     );
   }
 
-  if (step === 'qr-payment') {
-    return (
-      <div className="min-h-screen bg-surface flex items-center justify-center p-6 terminal-bg relative">
-        <div className="fixed inset-0 scanline opacity-20 pointer-events-none"></div>
-
-        <div className="bg-surface-container-low p-8 relative max-w-lg w-full border border-outline-variant/30">
-          <div className="absolute top-0 right-0 p-4 font-headline text-[10px] text-outline-variant uppercase tracking-widest">
-            Ref: PAY-XJ992
-          </div>
-          <button
-            onClick={() => setStep('form')}
-            className="absolute top-4 left-4 font-headline text-[10px] text-primary uppercase tracking-widest hover:text-white transition-colors"
-          >
-            ← ABORT PAYMENT
-          </button>
-
-          <div className="mt-8 mb-8 text-center">
-            <h2 className="font-headline text-2xl font-bold uppercase tracking-tight text-on-surface flex items-center justify-center gap-3">
-              <span className="material-symbols-outlined text-primary">qr_code_scanner</span>
-              Transmit_Funds
-            </h2>
-            <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/50 to-transparent mt-2"></div>
-          </div>
-
-          <div className="flex justify-center mb-8">
-            <div className="bg-white p-2 rounded block shadow-[0_0_30px_rgba(255,180,168,0.15)]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/qr-code.png" alt="Payment QR Code" className="w-48 h-48" />
-            </div>
-          </div>
-
-          <div className="text-center mb-8">
-            <p className="text-primary font-headline text-xs font-bold uppercase tracking-widest mb-2">Amount Required</p>
-            <p className="text-4xl font-headline font-black text-on-surface">₹{AMOUNT}.00</p>
-          </div>
-
-          <div className="space-y-6">
-            <div className="group">
-              <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Transaction ID / UTR *</label>
-              <div className="relative">
-                <input
-                  className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.transactionId ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`}
-                  placeholder="ENTER 12-DIGIT UTR"
-                  value={transactionId}
-                  onChange={(e) => setTransactionId(e.target.value)}
-                />
-                {errors.transactionId && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.transactionId}</p>}
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity">
-                  <span className="material-symbols-outlined text-sm">receipt_long</span>
-                </div>
-              </div>
-            </div>
-
-            <button
-              className="w-full py-4 bg-primary text-on-primary font-headline font-black text-lg tracking-[0.2em] uppercase transition-all hover:bg-primary-container active:scale-[0.98] shadow-[0_0_20px_rgba(255,180,168,0.2)] disabled:opacity-50 flex justify-center items-center gap-2"
-              onClick={handleFinalSubmit}
-              disabled={loading}
-            >
-              {loading ? 'CONFIRMING...' : 'VERIFY_TRANSFER'}
-              {!loading && <span className="material-symbols-outlined text-sm">check_circle</span>}
-            </button>
-            <p className="text-[10px] font-headline text-center text-on-surface-variant/40 uppercase tracking-widest">
-              Funds transmission is final. Verification required by HQ.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const inputClass = (field: string) =>
+    `w-full bg-surface-container-highest border-none border-b-2 ${errors[field] ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`;
 
   return (
     <div className="bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-x-hidden terminal-bg relative min-h-screen">
@@ -222,7 +164,7 @@ export default function RegisterPage() {
             </div>
             <h1 className="font-headline text-5xl font-black text-on-surface leading-[0.9] tracking-tighter uppercase">ESPIONAGE<br /><span className="text-primary-container">RECRUITMENT</span></h1>
             <p className="text-on-surface-variant/80 text-sm leading-relaxed max-w-md">
-              Initializing protocol 7-Delta. You are applying for a covert intelligence role. Your digital footprint will be scrubbed upon successful deployment. Total mission stake: <span className="text-secondary font-bold">₹{AMOUNT}.00</span>.
+              Initializing protocol 7-Delta. You are applying for a covert intelligence role. Registration is <span className="text-primary font-bold">FREE</span> — Solo or Duo entry.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -232,7 +174,7 @@ export default function RegisterPage() {
             </div>
             <div className="bg-surface-container-low p-4 border-l-4 border-secondary">
               <div className="font-headline text-[10px] text-secondary mb-1 uppercase tracking-widest">Assignment</div>
-              <div className="font-headline text-xl font-bold">SOLO_OP</div>
+              <div className="font-headline text-xl font-bold">{teamType === 'duo' ? 'DUO_OP' : 'SOLO_OP'}</div>
             </div>
           </div>
         </div>
@@ -249,92 +191,123 @@ export default function RegisterPage() {
             <div className="h-px w-full bg-gradient-to-r from-primary/50 to-transparent mt-2"></div>
           </div>
 
+          {/* Team Type Toggle */}
+          <div className="flex gap-4 mb-8">
+            <button
+              type="button"
+              onClick={() => setTeamType('solo')}
+              className={`flex-1 py-3 font-headline font-bold text-sm tracking-[0.2em] uppercase transition-all border ${teamType === 'solo' ? 'bg-primary/10 text-primary border-primary shadow-[0_0_15px_rgba(255,85,64,0.2)]' : 'bg-surface-container-highest border-outline-variant/30 text-on-surface-variant hover:border-primary/50'}`}
+            >
+              <span className="material-symbols-outlined text-sm align-middle mr-2">person</span>
+              SOLO
+            </button>
+            <button
+              type="button"
+              onClick={() => setTeamType('duo')}
+              className={`flex-1 py-3 font-headline font-bold text-sm tracking-[0.2em] uppercase transition-all border ${teamType === 'duo' ? 'bg-primary/10 text-primary border-primary shadow-[0_0_15px_rgba(255,85,64,0.2)]' : 'bg-surface-container-highest border-outline-variant/30 text-on-surface-variant hover:border-primary/50'}`}
+            >
+              <span className="material-symbols-outlined text-sm align-middle mr-2">group</span>
+              DUO
+            </button>
+          </div>
+
           <form className="space-y-8" onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="group col-span-1 md:col-span-2">
-                <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Agent Alias (Full Name) *</label>
-                <div className="relative">
-                  <input
-                    className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.name ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`}
-                    placeholder="GHOST_PROTOCOL"
-                    value={form.name}
-                    onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
-                  />
-                  {errors.name && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.name}</p>}
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity">
-                    <span className="material-symbols-outlined text-sm">badge</span>
+            {/* Leader Section */}
+            <div>
+              <h3 className="font-headline text-xs uppercase tracking-[0.2em] text-primary mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm">military_tech</span>
+                {teamType === 'duo' ? 'TEAM LEADER' : 'AGENT DETAILS'}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="group col-span-1 md:col-span-2">
+                  <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Agent Alias (Full Name) *</label>
+                  <div className="relative">
+                    <input className={inputClass('name')} placeholder="GHOST_PROTOCOL" value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} />
+                    {errors.name && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.name}</p>}
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity">
+                      <span className="material-symbols-outlined text-sm">badge</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="group">
-                <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Secure Contact (Personal Email) *</label>
-                <input
-                  className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.email ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`}
-                  placeholder="AGENT@SECURE.NET"
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))}
-                />
-                {errors.email && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.email}</p>}
-              </div>
-
-              <div className="group">
-                <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Command Center (College Email) *</label>
-                <input
-                  className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.collegeEmail ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`}
-                  placeholder="XX1234@SRMIST.EDU.IN"
-                  type="email"
-                  value={form.collegeEmail}
-                  onChange={(e) => setForm(p => ({ ...p, collegeEmail: e.target.value }))}
-                />
-                {errors.collegeEmail && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.collegeEmail}</p>}
-              </div>
-
-              <div className="group">
-                <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Agent ID (Registration No.) *</label>
-                <div className="relative">
-                  <input
-                    className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.regNo ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`}
-                    placeholder="RA2XXXXXXXXX"
-                    value={form.regNo}
-                    onChange={(e) => setForm(p => ({ ...p, regNo: e.target.value.toUpperCase() }))}
-                  />
-                  {errors.regNo && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.regNo}</p>}
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity">
-                    <span className="material-symbols-outlined text-sm">fingerprint</span>
+                <div className="group">
+                  <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Secure Contact (Personal Email) *</label>
+                  <input className={inputClass('email')} placeholder="AGENT@SECURE.NET" type="email" value={form.email} onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))} />
+                  {errors.email && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.email}</p>}
+                </div>
+                <div className="group">
+                  <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Command Center (College Email) *</label>
+                  <input className={inputClass('collegeEmail')} placeholder="XX1234@SRMIST.EDU.IN" type="email" value={form.collegeEmail} onChange={(e) => setForm(p => ({ ...p, collegeEmail: e.target.value }))} />
+                  {errors.collegeEmail && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.collegeEmail}</p>}
+                </div>
+                <div className="group">
+                  <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Agent ID (Registration No.) *</label>
+                  <div className="relative">
+                    <input className={inputClass('regNo')} placeholder="RA2XXXXXXXXX" value={form.regNo} onChange={(e) => setForm(p => ({ ...p, regNo: e.target.value.toUpperCase() }))} />
+                    {errors.regNo && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.regNo}</p>}
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity">
+                      <span className="material-symbols-outlined text-sm">fingerprint</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="group">
-                <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Comm Channel (Phone) *</label>
-                <div className="relative">
-                  <input
-                    className={`w-full bg-surface-container-highest border-none border-b-2 ${errors.phone ? 'border-error' : 'border-outline-variant focus:border-primary'} focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40`}
-                    placeholder="9876543210"
-                    type="tel"
-                    maxLength={10}
-                    value={form.phone}
-                    onChange={(e) => setForm(p => ({ ...p, phone: e.target.value.replace(/\D/g, '') }))}
-                  />
-                  {errors.phone && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.phone}</p>}
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity">
-                    <span className="material-symbols-outlined text-sm">call</span>
+                <div className="group">
+                  <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Comm Channel (Phone) *</label>
+                  <div className="relative">
+                    <input className={inputClass('phone')} placeholder="9876543210" type="tel" maxLength={10} value={form.phone} onChange={(e) => setForm(p => ({ ...p, phone: e.target.value.replace(/\D/g, '') }))} />
+                    {errors.phone && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.phone}</p>}
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity">
+                      <span className="material-symbols-outlined text-sm">call</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* Partner Section (Duo only) */}
+            {teamType === 'duo' && (
+              <div className="border-t border-primary/20 pt-8">
+                <h3 className="font-headline text-xs uppercase tracking-[0.2em] text-primary mb-4 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm">group_add</span>
+                  PARTNER DETAILS
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="group col-span-1 md:col-span-2">
+                    <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Partner Alias (Full Name) *</label>
+                    <input className={inputClass('partnerName')} placeholder="SHADOW_AGENT" value={partner.name} onChange={(e) => setPartner(p => ({ ...p, name: e.target.value }))} />
+                    {errors.partnerName && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.partnerName}</p>}
+                  </div>
+                  <div className="group">
+                    <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Partner Email *</label>
+                    <input className={inputClass('partnerEmail')} placeholder="PARTNER@SECURE.NET" type="email" value={partner.email} onChange={(e) => setPartner(p => ({ ...p, email: e.target.value }))} />
+                    {errors.partnerEmail && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.partnerEmail}</p>}
+                  </div>
+                  <div className="group">
+                    <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Partner College Email *</label>
+                    <input className={inputClass('partnerCollegeEmail')} placeholder="XX5678@SRMIST.EDU.IN" type="email" value={partner.collegeEmail} onChange={(e) => setPartner(p => ({ ...p, collegeEmail: e.target.value }))} />
+                    {errors.partnerCollegeEmail && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.partnerCollegeEmail}</p>}
+                  </div>
+                  <div className="group">
+                    <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Partner Reg No. *</label>
+                    <input className={inputClass('partnerRegNo')} placeholder="RA2XXXXXXXXX" value={partner.regNo} onChange={(e) => setPartner(p => ({ ...p, regNo: e.target.value.toUpperCase() }))} />
+                    {errors.partnerRegNo && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.partnerRegNo}</p>}
+                  </div>
+                  <div className="group">
+                    <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Partner Phone *</label>
+                    <input className={inputClass('partnerPhone')} placeholder="9876543210" type="tel" maxLength={10} value={partner.phone} onChange={(e) => setPartner(p => ({ ...p, phone: e.target.value.replace(/\D/g, '') }))} />
+                    {errors.partnerPhone && <p className="text-error mt-2 font-headline text-[10px] tracking-widest">{errors.partnerPhone}</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="bg-surface-container-high p-6 border-t border-primary/20 mt-12">
               <div className="flex justify-between items-end mb-6">
                 <div>
-                  <div className="font-headline text-[10px] uppercase tracking-[0.2em] text-primary mb-1">Contract Execution Fee</div>
-                  <div className="text-3xl font-headline font-black text-on-surface">₹{AMOUNT}.00 <span className="text-sm font-normal text-outline-variant">INR</span></div>
+                  <div className="font-headline text-[10px] uppercase tracking-[0.2em] text-primary mb-1">Entry Fee</div>
+                  <div className="text-3xl font-headline font-black text-primary">FREE <span className="text-sm font-normal text-outline-variant">OF COST</span></div>
                 </div>
                 <div className="text-right">
-                  <div className="font-headline text-[10px] uppercase tracking-[0.2em] text-on-surface-variant/40">Encryption Type</div>
-                  <div className="font-headline text-xs font-medium">AES-256_BIT</div>
+                  <div className="font-headline text-[10px] uppercase tracking-[0.2em] text-on-surface-variant/40">Entry Type</div>
+                  <div className="font-headline text-xs font-medium">{teamType === 'duo' ? 'DUO_ENTRY' : 'SOLO_ENTRY'}</div>
                 </div>
               </div>
 

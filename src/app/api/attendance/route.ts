@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
-import Team from '@/models/Team';
+import Participant from '@/models/Participant';
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,35 +12,35 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
     
-    // Fetch the team
-    const team = await Team.findOne({ teamId, paymentStatus: 'PAID' });
+    // Find participant by participantId with confirmed RSVP
+    const participant = await Participant.findOne({ participantId: teamId, rsvpStatus: 'CONFIRMED' });
     
-    if (!team) {
-      return NextResponse.json({ error: 'Team not found or payment not verified.' }, { status: 404 });
+    if (!participant) {
+      return NextResponse.json({ error: 'Team not found or RSVP not confirmed.' }, { status: 404 });
     }
 
     // Check if already present
-    if (team.attendance?.present) {
+    if (participant.attendance?.present) {
       return NextResponse.json({ 
-        error: `Team ${team.teamName} is already checked in.`,
+        error: `${participant.name} (${participant.participantId}) is already checked in.`,
         alreadyCheckedIn: true 
       }, { status: 400 });
     }
 
     // Mark as present
-    team.attendance = {
+    participant.attendance = {
       present: true,
       checkedAt: new Date()
     };
     
-    await team.save();
+    await participant.save();
 
     return NextResponse.json({
       success: true,
-      teamId: team.teamId,
-      teamName: team.teamName,
-      leaderName: team.teamLeader.name,
-      membersCount: team.teamSize,
+      teamId: participant.participantId,
+      teamName: participant.name,
+      leaderName: participant.name,
+      membersCount: participant.teamType === 'duo' ? 2 : 1,
     });
 
   } catch (err) {
