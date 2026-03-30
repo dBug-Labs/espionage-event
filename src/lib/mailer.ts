@@ -50,6 +50,10 @@ export async function sendRegistrationConfirmationEmail(data: RegistrationEmailD
       </div>
 
       <div style="background: #1C1C1D; border-left: 3px solid #FF5540; padding: 20px; margin: 24px 0;">
+        <p style="margin: 0 0 12px 0; font-size: 13px; color: #FF5540; font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase;">📅 EVENT DETAILS</p>
+        <p style="margin: 0 0 6px 0; font-size: 13px; color: #E5E2E1;"><strong>DATE:</strong> ${process.env.EVENT_DATE}</p>
+        <p style="margin: 0 0 6px 0; font-size: 13px; color: #E5E2E1;"><strong>TIME:</strong> ${process.env.EVENT_TIME}</p>
+        <p style="margin: 0 0 16px 0; font-size: 13px; color: #E5E2E1;"><strong>VENUE:</strong> ${process.env.EVENT_VENUE}</p>
         <p style="margin: 0 0 8px 0; font-size: 13px; color: #FF5540; font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase;">⏰ WHAT'S NEXT?</p>
         <p style="margin: 0; font-size: 13px; color: #ABAAA9; line-height: 1.6;">Before the event, you will receive an <strong style="color: #E5E2E1;">RSVP email</strong> to confirm your attendance. Stay tuned on your registered email and also join our WhatsApp group for updates!</p>
       </div>

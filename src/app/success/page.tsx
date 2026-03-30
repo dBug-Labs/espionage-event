@@ -163,6 +163,35 @@ export default function SuccessPage() {
               </div>
             </div>
 
+            <div className="border border-outline-variant/30 bg-surface-container-highest p-6 relative">
+              <h3 className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-4 absolute -top-2 left-4 bg-surface-container-highest px-2">
+                Event Details
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-primary text-lg">calendar_month</span>
+                  <div>
+                    <p className="text-[10px] text-on-surface-variant uppercase tracking-widest">Date</p>
+                    <p className="text-sm font-headline font-bold text-on-surface">{process.env.NEXT_PUBLIC_EVENT_DATE}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-secondary text-lg">schedule</span>
+                  <div>
+                    <p className="text-[10px] text-on-surface-variant uppercase tracking-widest">Time</p>
+                    <p className="text-sm font-headline font-bold text-on-surface">{process.env.NEXT_PUBLIC_EVENT_TIME}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-primary text-lg">location_on</span>
+                  <div>
+                    <p className="text-[10px] text-on-surface-variant uppercase tracking-widest">Venue</p>
+                    <p className="text-sm font-headline font-bold text-on-surface">{process.env.NEXT_PUBLIC_EVENT_VENUE}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="bg-surface-container-low border border-outline-variant p-4 flex items-start gap-4 shadow-inner">
               <span className="material-symbols-outlined text-primary text-2xl mt-1 hidden sm:block">screenshot</span>
               <div>
