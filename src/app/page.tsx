@@ -24,6 +24,40 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const [timeLeft, setTimeLeft] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0
+  });
+  const [timerMounted, setTimerMounted] = useState(false);
+
+  useEffect(() => {
+    setTimerMounted(true);
+    const targetDate = new Date("April 9, 2026 09:00:00").getTime();
+
+    const updateTimer = () => {
+      const now = new Date().getTime();
+      const distance = targetDate - now;
+
+      if (distance < 0) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+        return;
+      }
+
+      setTimeLeft({
+        days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+        seconds: Math.floor((distance % (1000 * 60)) / 1000)
+      });
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <>
       <div className="fixed inset-0 scanlines z-50 pointer-events-none opacity-20"></div>
@@ -67,9 +101,45 @@ export default function LandingPage() {
             <h1 className="text-7xl md:text-9xl font-headline font-black text-primary tracking-tighter mb-4 filter drop-shadow-[0_0_20px_rgba(255,85,64,0.4)]">
               ESPIONAGE
             </h1>
-            <p className="text-xl md:text-3xl font-headline font-light text-on-surface uppercase tracking-[0.5em] mb-12">
+            <p className="text-xl md:text-3xl font-headline font-light text-on-surface uppercase tracking-[0.5em] mb-8">
               <i>DECRYPT. DEPLOY. DOMINATE.</i>
             </p>
+            <div className="flex flex-wrap justify-center gap-4 md:gap-8 mb-8 text-on-surface font-headline">
+              <div className="flex items-center gap-2 bg-surface-container-high/60 backdrop-blur-sm border border-outline-variant/30 px-4 py-2 hover:bg-surface-container-highest transition-colors">
+                <span className="material-symbols-outlined text-primary text-lg">calendar_month</span>
+                <span className="text-sm md:text-base font-bold uppercase tracking-widest">{process.env.NEXT_PUBLIC_EVENT_DATE}</span>
+              </div>
+              <div className="flex items-center gap-2 bg-surface-container-high/60 backdrop-blur-sm border border-outline-variant/30 px-4 py-2 hover:bg-surface-container-highest transition-colors">
+                <span className="material-symbols-outlined text-secondary text-lg">schedule</span>
+                <span className="text-sm md:text-base font-bold uppercase tracking-widest">{process.env.NEXT_PUBLIC_EVENT_TIME}</span>
+              </div>
+              <div className="flex items-center gap-2 bg-surface-container-high/60 backdrop-blur-sm border border-outline-variant/30 px-4 py-2 hover:bg-surface-container-highest transition-colors">
+                <span className="material-symbols-outlined text-primary text-lg">location_on</span>
+                <span className="text-sm md:text-base font-bold uppercase tracking-widest">{process.env.NEXT_PUBLIC_EVENT_VENUE}</span>
+              </div>
+            </div>
+
+            {/* Tactical Timer */}
+            {timerMounted && (
+              <div className="flex justify-center gap-4 md:gap-6 mb-12">
+                {[
+                  { label: 'DAYS', value: timeLeft.days },
+                  { label: 'HOURS', value: timeLeft.hours },
+                  { label: 'MINS', value: timeLeft.minutes },
+                  { label: 'SECS', value: timeLeft.seconds }
+                ].map((item, i) => (
+                  <div key={i} className="flex flex-col items-center">
+                    <div className="w-16 h-16 md:w-20 md:h-20 bg-black border border-primary/40 flex items-center justify-center font-headline text-3xl md:text-4xl font-black text-primary drop-shadow-[0_0_8px_rgba(255,85,64,0.6)] relative overflow-hidden group">
+                      <div className="absolute inset-0 bg-primary/10 group-hover:bg-primary/20 transition-colors"></div>
+                      <div className="absolute top-0 w-full h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent"></div>
+                      <div className="absolute bottom-0 w-full h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent"></div>
+                      {item.value.toString().padStart(2, '0')}
+                    </div>
+                    <span className="text-[10px] md:text-xs font-label uppercase tracking-widest text-secondary mt-2">{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="flex flex-wrap justify-center gap-6">
               <Link href="/register" className="px-10 py-4 bg-primary text-on-primary font-headline font-bold uppercase tracking-widest text-lg glow-red hover:bg-primary-container transition-all">
                 Join the Mission
