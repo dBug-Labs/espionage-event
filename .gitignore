@@ -48,4 +48,55 @@ next-env.d.ts
 /do_seed.js
 /generate_questions.ts
 /merge_questions.js
+
+# Judge0 - Docker deployment folder (keep setup script but ignore deployment)
+judge0/
+!judge0-setup.sh
+
+# Docker volumes and temporary files
+/docker-volumes/
+*.log
+
+# Environment-specific files
+.env.local
+.env.*.local
+
+# IDE and editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS-specific files
+node_modules/.cache/
+.cache/
+
+# Compilation and build artifacts
+*.tsbuildinfo
+.turbo/
+dist/
+build/
+
+# Development server and temporary
+.next/websocket*
+
+# Database backups and temporary data
+*.db
+*.sqlite
+*.dump
+
+# API keys and secrets (double-check)
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Judge0 specific (database, logs)
+judge0/db/
+judge0/log/
+judge0/tmp/
+judge0/.env
+judge0/dump.rdb
 /test-rp.js
