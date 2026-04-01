@@ -5,6 +5,7 @@ import OTP from '@/models/OTP';
 import { sendRegistrationConfirmationEmail } from '@/lib/mailer';
 import { verifyCaptcha } from '@/lib/captcha';
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
+import { getConfig } from '@/models/EventConfig';
 
 // ─── Validation Helpers ─────────────────────────────────────────────
 
@@ -131,6 +132,11 @@ export async function POST(req: NextRequest) {
     }
 
     await connectToDatabase();
+    const config = await getConfig();
+
+    if (!config.registrationOpen) {
+      return NextResponse.json({ error: 'Registration is currently closed.' }, { status: 403 });
+    }
 
     // Verify the OTP token
     const otpRecord = await OTP.findOne({

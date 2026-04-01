@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
 import OTP from '@/models/OTP';
-import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 import { verifyCaptcha } from '@/lib/captcha';
+import { getConfig } from '@/models/EventConfig';
 import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
@@ -45,36 +45,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // --- Rate limiting: per email (1 per 60s) ---
-    const emailLimit = checkRateLimit({
-      prefix: 'otp-send-email',
-      identifier: normalizedEmail,
-      maxRequests: 1,
-      windowSeconds: 60,
-    });
-    if (!emailLimit.allowed) {
-      return NextResponse.json(
-        { error: `Please wait ${emailLimit.retryAfterSeconds}s before requesting another OTP.` },
-        { status: 429 }
-      );
-    }
-
-    // --- Rate limiting: per IP (5 per hour) ---
-    const clientIP = getClientIP(req);
-    const ipLimit = checkRateLimit({
-      prefix: 'otp-send-ip',
-      identifier: clientIP,
-      maxRequests: 5,
-      windowSeconds: 3600,
-    });
-    if (!ipLimit.allowed) {
-      return NextResponse.json(
-        { error: 'Too many OTP requests. Please try again later.' },
-        { status: 429 }
-      );
-    }
-
     await connectToDatabase();
+    const config = await getConfig();
+
+    if (!config.registrationOpen) {
+      return NextResponse.json({ error: 'Registration is currently closed.' }, { status: 403 });
+    }
 
     // Delete any existing OTPs for this email
     await OTP.deleteMany({ email: normalizedEmail });
