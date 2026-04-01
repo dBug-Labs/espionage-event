@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 import { Judge0ServiceError, executeJudge0Submission } from './judge0.ts';
 
 async function testSuccessfulExecution() {
+  let requestedUrl = '';
   const result = await executeJudge0Submission({
     sourceCode: 'print("hello")',
     languageId: 71,
-    fetchImpl: async () =>
-      new Response(
+    fetchImpl: async (input) => {
+      requestedUrl = String(input);
+      return new Response(
         JSON.stringify({
           stdout: 'hello\n',
           stderr: null,
@@ -21,8 +23,11 @@ async function testSuccessfulExecution() {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         }
-      ),
+      );
+    },
   });
+
+  assert.equal(requestedUrl, 'https://ce.judge0.com/submissions?wait=true&base64_encoded=false');
 
   assert.deepEqual(result, {
     stdout: 'hello\n',

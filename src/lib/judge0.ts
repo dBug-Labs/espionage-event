@@ -24,7 +24,6 @@ export type Judge0ExecutionRequest = {
   cpuTimeLimit?: number;
   memoryLimit?: number;
   timeoutMs?: number;
-  apiUrl?: string;
   fetchImpl?: typeof fetch;
 };
 
@@ -98,7 +97,6 @@ export async function executeJudge0Submission({
   cpuTimeLimit,
   memoryLimit,
   timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
-  apiUrl = process.env.JUDGE0_API_URL || DEFAULT_JUDGE0_API_URL,
   fetchImpl = fetch,
 }: Judge0ExecutionRequest): Promise<Judge0ExecutionResult> {
   if (!sourceCode.trim()) {
@@ -113,7 +111,7 @@ export async function executeJudge0Submission({
   const timer = setTimeout(() => controller.abort('Judge0 request timed out.'), timeoutMs);
 
   try {
-    const response = await fetchImpl(buildJudge0Url(apiUrl), {
+    const response = await fetchImpl(buildJudge0Url(DEFAULT_JUDGE0_API_URL), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
