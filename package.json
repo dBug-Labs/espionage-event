@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --experimental-strip-types src/lib/judge0.test.ts"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
