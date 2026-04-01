@@ -3,6 +3,7 @@ import connectToDatabase from '@/lib/mongodb';
 import CodingQuestion from '@/models/CodingQuestion';
 import Participant from '@/models/Participant';
 import { getConfig } from '@/models/EventConfig';
+import { Judge0ServiceError, executeJudge0Submission } from '@/lib/judge0';
 import { buildSubmissionSource, getJudge0LanguageId, pickRound2Questions } from '@/lib/round2';
 
 // Submit against hidden test cases — scoring
@@ -24,9 +25,6 @@ export async function POST(req: NextRequest) {
 
     const question = await CodingQuestion.findById(questionId);
     if (!question) return NextResponse.json({ error: 'Question not found.' }, { status: 404 });
-
-    const judge0Url = process.env.JUDGE0_API_URL;
-    if (!judge0Url) return NextResponse.json({ error: 'Compiler not configured.' }, { status: 503 });
 
     const visibleQuestions = await CodingQuestion.find({}, '_id order points').sort({ order: 1 }).lean();
     const assignedQuestions = pickRound2Questions(
@@ -59,30 +57,25 @@ export async function POST(req: NextRequest) {
     for (let i = 0; i < allTestCases.length; i++) {
       const tc = allTestCases[i];
       try {
-        const submission = await fetch(`${judge0Url}/submissions?base64_encoded=false&wait=true`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            source_code: buildSubmissionSource(question.toObject(), language, code),
-            language_id: langId,
-            stdin: tc.input,
-            expected_output: tc.expectedOutput,
-            time_limit: question.timeLimit,
-            memory_limit: question.memoryLimit,
-          }),
+        const result = await executeJudge0Submission({
+          sourceCode: buildSubmissionSource(question.toObject(), language, code),
+          languageId: langId,
+          stdin: tc.input,
+          expectedOutput: tc.expectedOutput,
+          cpuTimeLimit: question.timeLimit,
+          memoryLimit: question.memoryLimit,
         });
 
-        const result = await submission.json();
-        const statusDesc = result.status?.description || 'Unknown';
-        const isPassed = statusDesc === 'Accepted';
+        const isPassed = result.status === 'Accepted';
 
         if (isPassed) passed++;
-        else if (verdict === 'Accepted') verdict = statusDesc;
+        else if (verdict === 'Accepted') verdict = result.status;
 
-        results.push({ testCase: i + 1, status: statusDesc, passed: isPassed });
-      } catch {
-        results.push({ testCase: i + 1, status: 'Runtime Error', passed: false });
-        if (verdict === 'Accepted') verdict = 'Runtime Error';
+        results.push({ testCase: i + 1, status: result.status, passed: isPassed });
+      } catch (error) {
+        const status = error instanceof Judge0ServiceError ? error.message : 'Runtime Error';
+        results.push({ testCase: i + 1, status, passed: false });
+        if (verdict === 'Accepted') verdict = status;
       }
     }
 

@@ -28,6 +28,13 @@ interface TestResult {
   passed: boolean;
 }
 
+interface RunOutput {
+  stdout: string;
+  stderr: string;
+  compile_output: string;
+  status: string;
+}
+
 const MAX_WARNINGS = 3;
 
 export default function Round2Page() {
@@ -41,7 +48,7 @@ export default function Round2Page() {
   const [running, setRunning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [output, setOutput] = useState<{ stdout: string; stderr: string; compile_output: string; status: string } | null>(null);
+  const [output, setOutput] = useState<RunOutput | null>(null);
   const [submitResult, setSubmitResult] = useState<{ verdict: string; passed: number; total: number; results: TestResult[] } | null>(null);
   const [verdicts, setVerdicts] = useState<Record<string, string>>({});
   const [warnings, setWarnings] = useState(0);
@@ -177,7 +184,16 @@ export default function Round2Page() {
         body: JSON.stringify({ email: session?.email, code, language, questionId: question._id }),
       });
       const data = await res.json();
-      setOutput(data);
+      if (!res.ok) {
+        setOutput({
+          stdout: '',
+          stderr: data.error || 'Execution failed.',
+          compile_output: '',
+          status: 'Error',
+        });
+        return;
+      }
+      setOutput(data as RunOutput);
     } catch {
       setOutput({ stdout: '', stderr: 'Execution request failed.', compile_output: '', status: 'Error' });
     } finally {
