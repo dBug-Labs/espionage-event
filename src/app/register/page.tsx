@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Script from 'next/script';
@@ -29,6 +29,8 @@ declare global {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const [registrationOpen, setRegistrationOpen] = useState(true);
+  const [configLoaded, setConfigLoaded] = useState(false);
   const [teamType, setTeamType] = useState<'solo' | 'duo'>('solo');
   const [form, setForm] = useState<MemberData>({
     name: '',
@@ -58,31 +60,29 @@ export default function RegisterPage() {
   const [otpStep, setOtpStep] = useState<'idle' | 'sending' | 'sent' | 'verifying' | 'verified'>('idle');
   const [otpCode, setOtpCode] = useState('');
   const [otpError, setOtpError] = useState('');
-  const [otpCountdown, setOtpCountdown] = useState(0);
   const [verificationToken, setVerificationToken] = useState('');
-  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ─── Cleanup countdown on unmount ───
   useEffect(() => {
-    return () => {
-      if (countdownRef.current) clearInterval(countdownRef.current);
+    const loadConfig = async () => {
+      try {
+        const res = await fetch('/api/admin/event-config');
+        const data = await res.json();
+        if (res.ok && data.config) {
+          setRegistrationOpen(Boolean(data.config.registrationOpen));
+        }
+      } catch (err) {
+        console.error('[register] Failed to load event config', err);
+      } finally {
+        setConfigLoaded(true);
+      }
     };
+
+    loadConfig();
   }, []);
 
   // ─── Countdown timer for OTP resend ───
-  const startCountdown = useCallback((seconds: number) => {
-    setOtpCountdown(seconds);
-    if (countdownRef.current) clearInterval(countdownRef.current);
-    countdownRef.current = setInterval(() => {
-      setOtpCountdown((prev) => {
-        if (prev <= 1) {
-          if (countdownRef.current) clearInterval(countdownRef.current);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }, []);
+
 
   // ─── Validation ───
   function validateEmail(e: string) {
@@ -121,6 +121,11 @@ export default function RegisterPage() {
 
   // ─── Send OTP ───
   async function handleSendOTP() {
+    if (!registrationOpen) {
+      setOtpError('Registration is currently closed.');
+      return;
+    }
+
     if (!validateEmail(form.email)) {
       setOtpError('Enter a valid email address first.');
       return;
@@ -155,7 +160,6 @@ export default function RegisterPage() {
       }
 
       setOtpStep('sent');
-      startCountdown(60);
     } catch {
       setOtpError('Network error. Please try again.');
       setOtpStep('idle');
@@ -187,7 +191,6 @@ export default function RegisterPage() {
 
       setVerificationToken(data.verificationToken);
       setOtpStep('verified');
-      if (countdownRef.current) clearInterval(countdownRef.current);
     } catch {
       setOtpError('Network error. Please try again.');
       setOtpStep('sent');
@@ -197,6 +200,11 @@ export default function RegisterPage() {
   // ─── Submit Registration ───
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!registrationOpen) {
+      alert('Registration is currently closed.');
+      return;
+    }
+
     if (!validate()) return;
 
     if (otpStep !== 'verified') {
@@ -365,6 +373,9 @@ export default function RegisterPage() {
             <p className="text-on-surface-variant/80 text-sm leading-relaxed max-w-md">
               Initializing protocol 7-Delta. You are applying for a covert intelligence role. Registration is <span className="text-primary font-bold">FREE</span> — Solo or Duo entry.
             </p>
+            <p className="text-primary text-sm font-headline tracking-[0.12em] uppercase">
+              Last date to register: 8 April
+            </p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-surface-container-low p-4 border-l-4 border-primary">
@@ -384,7 +395,7 @@ export default function RegisterPage() {
               <span className="font-headline text-[10px] uppercase tracking-[0.2em] text-green-500">Protected Registration</span>
             </div>
             <p className="text-on-surface-variant/60 text-[11px] font-headline tracking-wide">
-              This form is protected by Cloudflare Turnstile, OTP verification, and connection rate limiting.
+              This form is protected by Cloudflare Turnstile and OTP verification.
             </p>
           </div>
         </div>
@@ -400,6 +411,17 @@ export default function RegisterPage() {
             </h2>
             <div className="h-px w-full bg-gradient-to-r from-primary/50 to-transparent mt-2"></div>
           </div>
+
+          {configLoaded && (
+            <div className={`mb-8 border px-4 py-4 ${registrationOpen ? 'border-green-500/30 bg-green-500/5' : 'border-error/40 bg-error/10'}`}>
+              <div className={`font-headline text-[11px] uppercase tracking-[0.2em] ${registrationOpen ? 'text-green-500' : 'text-error'}`}>
+                {registrationOpen ? 'Registration Open' : 'Registration Closed'}
+              </div>
+              <p className="mt-2 text-sm text-on-surface-variant">
+                Registrations close on <span className="text-primary font-bold">8 April</span>.
+              </p>
+            </div>
+          )}
 
           {/* Team Type Toggle */}
           <div className="flex gap-4 mb-8">
@@ -478,7 +500,7 @@ export default function RegisterPage() {
                       <button
                         type="button"
                         onClick={handleSendOTP}
-                        disabled={!validateEmail(form.email)}
+                        disabled={!registrationOpen || !validateEmail(form.email)}
                         className="px-4 py-2 bg-primary/10 border border-primary/30 text-primary font-headline text-[11px] tracking-[0.15em] uppercase hover:bg-primary/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
                       >
                         <span className="material-symbols-outlined text-sm">mail_lock</span>
@@ -515,19 +537,14 @@ export default function RegisterPage() {
                           <span className="text-on-surface-variant/50 font-headline text-[10px] tracking-widest">
                             Check your inbox & spam folder
                           </span>
-                          {otpCountdown > 0 ? (
-                            <span className="text-on-surface-variant/40 font-headline text-[10px] tracking-widest">
-                              Resend in {otpCountdown}s
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={handleSendOTP}
-                              className="text-primary font-headline text-[10px] tracking-widest hover:underline"
-                            >
-                              RESEND_OTP
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={handleSendOTP}
+                            disabled={!registrationOpen || otpStep === 'verifying'}
+                            className="text-primary font-headline text-[10px] tracking-widest hover:underline disabled:opacity-30 disabled:no-underline"
+                          >
+                            RESEND_OTP
+                          </button>
                         </div>
                       </div>
                     )}
@@ -640,10 +657,15 @@ export default function RegisterPage() {
 
               <button
                 type="submit"
-                disabled={otpStep !== 'verified'}
+                disabled={!registrationOpen || otpStep !== 'verified'}
                 className="w-full py-5 bg-primary text-on-primary font-headline font-black text-xl tracking-[0.2em] uppercase transition-all hover:bg-primary-container active:scale-[0.98] shadow-[0_0_20px_rgba(255,180,168,0.2)] flex items-center justify-center gap-4 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-primary"
               >
-                {otpStep !== 'verified' ? (
+                {!registrationOpen ? (
+                  <>
+                    <span className="material-symbols-outlined">lock</span>
+                    REGISTRATION_CLOSED
+                  </>
+                ) : otpStep !== 'verified' ? (
                   <>
                     <span className="material-symbols-outlined">lock</span>
                     VERIFY_EMAIL_FIRST
