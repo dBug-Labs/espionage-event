@@ -3,8 +3,8 @@ import connectToDatabase from '@/lib/mongodb';
 import CodingQuestion from '@/models/CodingQuestion';
 import Participant from '@/models/Participant';
 import { getConfig } from '@/models/EventConfig';
-import { Judge0ServiceError, executeJudge0Submission } from '@/lib/judge0';
-import { buildSubmissionSource, getJudge0LanguageId, pickRound2Questions } from '@/lib/round2';
+import { PistonServiceError, executePistonSubmission, getPistonRuntimes } from '@/lib/piston';
+import { buildSubmissionSource, pickRound2Questions, resolvePistonRuntime } from '@/lib/round2';
 
 // Submit against hidden test cases — scoring
 export async function POST(req: NextRequest) {
@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Question not assigned to this login.' }, { status: 403 });
     }
 
-    const langId = getJudge0LanguageId(language);
-    if (!langId) return NextResponse.json({ error: 'Unsupported language.' }, { status: 400 });
+    const runtime = resolvePistonRuntime(await getPistonRuntimes(), language);
+    if (!runtime) return NextResponse.json({ error: 'Unsupported language.' }, { status: 400 });
 
     // Run against all hidden test cases
     const allTestCases = [
@@ -57,9 +57,10 @@ export async function POST(req: NextRequest) {
     for (let i = 0; i < allTestCases.length; i++) {
       const tc = allTestCases[i];
       try {
-        const result = await executeJudge0Submission({
+        const result = await executePistonSubmission({
           sourceCode: buildSubmissionSource(question.toObject(), language, code),
-          languageId: langId,
+          language: runtime.pistonLanguage,
+          version: runtime.version,
           stdin: tc.input,
           expectedOutput: tc.expectedOutput,
           cpuTimeLimit: question.timeLimit,
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
 
         results.push({ testCase: i + 1, status: result.status, passed: isPassed });
       } catch (error) {
-        const status = error instanceof Judge0ServiceError ? error.message : 'Runtime Error';
+        const status = error instanceof PistonServiceError ? error.message : 'Runtime Error';
         results.push({ testCase: i + 1, status, passed: false });
         if (verdict === 'Accepted') verdict = status;
       }
@@ -119,6 +120,10 @@ export async function POST(req: NextRequest) {
       results,
     });
   } catch (err) {
+    if (err instanceof PistonServiceError) {
+      return NextResponse.json({ error: err.message }, { status: err.statusCode });
+    }
+
     console.error('[round2/execute]', err);
     return NextResponse.json({ error: 'Submission failed.' }, { status: 500 });
   }

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
 import CodingQuestion from '@/models/CodingQuestion';
-import { Judge0ServiceError, executeJudge0Submission } from '@/lib/judge0';
-import { buildSubmissionSource, getJudge0LanguageId, pickRound2Questions } from '@/lib/round2';
+import { PistonServiceError, executePistonSubmission, getPistonRuntimes } from '@/lib/piston';
+import { buildSubmissionSource, pickRound2Questions, resolvePistonRuntime } from '@/lib/round2';
 
 // Run against sample test cases only - no scoring
 export async function POST(req: NextRequest) {
@@ -27,12 +27,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Question not assigned to this login.' }, { status: 403 });
     }
 
-    const langId = getJudge0LanguageId(language);
-    if (!langId) return NextResponse.json({ error: 'Unsupported language.' }, { status: 400 });
+    const runtime = resolvePistonRuntime(await getPistonRuntimes(), language);
+    if (!runtime) return NextResponse.json({ error: 'Unsupported language.' }, { status: 400 });
 
-    const result = await executeJudge0Submission({
+    const result = await executePistonSubmission({
       sourceCode: buildSubmissionSource(question.toObject(), language, code),
-      languageId: langId,
+      language: runtime.pistonLanguage,
+      version: runtime.version,
       stdin: question.sampleInput,
       expectedOutput: question.sampleOutput,
       cpuTimeLimit: question.timeLimit,
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
       memory: result.memory,
     });
   } catch (err) {
-    if (err instanceof Judge0ServiceError) {
+    if (err instanceof PistonServiceError) {
       return NextResponse.json({ error: err.message }, { status: err.statusCode });
     }
 

@@ -1,10 +1,40 @@
+import type { PistonRuntime } from './piston';
+
 export const ROUND2_QUESTION_COUNT = 5;
 
-export const ROUND2_LANGUAGE_IDS: Record<string, number> = {
-  c: 50,
-  cpp: 54,
-  java: 62,
-  python: 71,
+export const ROUND2_LANGUAGE_CONFIG = {
+  c: {
+    id: 'c',
+    label: 'C (GCC)',
+    monaco: 'c',
+    pistonNames: ['c'],
+  },
+  cpp: {
+    id: 'cpp',
+    label: 'C++ (G++)',
+    monaco: 'cpp',
+    pistonNames: ['c++', 'cpp'],
+  },
+  java: {
+    id: 'java',
+    label: 'Java (JDK)',
+    monaco: 'java',
+    pistonNames: ['java'],
+  },
+  python: {
+    id: 'python',
+    label: 'Python 3',
+    monaco: 'python',
+    pistonNames: ['python', 'python3', 'py'],
+  },
+} as const;
+
+export type Round2LanguageId = keyof typeof ROUND2_LANGUAGE_CONFIG;
+export type Round2LanguageOption = (typeof ROUND2_LANGUAGE_CONFIG)[Round2LanguageId];
+export type ResolvedPistonRuntime = {
+  language: Round2LanguageId;
+  pistonLanguage: string;
+  version: string;
 };
 
 const USER_CODE_PLACEHOLDER = '__USER_CODE__';
@@ -22,8 +52,36 @@ function getLanguageCode(
   return source[language];
 }
 
-export function getJudge0LanguageId(language: string): number | null {
-  return ROUND2_LANGUAGE_IDS[language] ?? null;
+function matchesRuntime(runtime: PistonRuntime, language: Round2LanguageOption): boolean {
+  const names = new Set([
+    runtime.language.toLowerCase(),
+    ...(runtime.aliases ?? []).map((alias) => alias.toLowerCase()),
+  ]);
+
+  return language.pistonNames.some((name) => names.has(name));
+}
+
+export function getSupportedRound2Languages(runtimes: PistonRuntime[]): Round2LanguageOption[] {
+  return (Object.values(ROUND2_LANGUAGE_CONFIG) as Round2LanguageOption[]).filter((language) =>
+    runtimes.some((runtime) => matchesRuntime(runtime, language))
+  );
+}
+
+export function resolvePistonRuntime(
+  runtimes: PistonRuntime[],
+  language: string
+): ResolvedPistonRuntime | null {
+  const config = ROUND2_LANGUAGE_CONFIG[language as Round2LanguageId];
+  if (!config) return null;
+
+  const runtime = runtimes.find((entry) => matchesRuntime(entry, config));
+  if (!runtime) return null;
+
+  return {
+    language: config.id,
+    pistonLanguage: runtime.language,
+    version: runtime.version,
+  };
 }
 
 export function buildSubmissionSource(
@@ -44,6 +102,14 @@ export function getStarterCode(
   language: string
 ): string {
   return getLanguageCode(question.starterCode ?? question.starterTemplates, language) ?? '';
+}
+
+export function getQuestionLanguageIds(question: {
+  starterCode?: Partial<Record<string, string>>;
+  starterTemplates?: LanguageEntry[];
+}): Round2LanguageId[] {
+  const candidates = Object.keys(ROUND2_LANGUAGE_CONFIG) as Round2LanguageId[];
+  return candidates.filter((language) => Boolean(getStarterCode(question, language)));
 }
 
 function hashString(value: string): number {
