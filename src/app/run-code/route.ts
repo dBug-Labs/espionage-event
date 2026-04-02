@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Judge0ServiceError, executeJudge0Submission } from '@/lib/judge0';
+import { PistonServiceError, executePistonSubmission } from '@/lib/piston';
 
 export async function POST(req: NextRequest) {
   try {
-    const { source_code, language_id } = await req.json();
+    const { source_code, language, version } = await req.json();
 
-    const result = await executeJudge0Submission({
+    const result = await executePistonSubmission({
       sourceCode: source_code,
-      languageId: language_id,
+      language,
+      version,
     });
 
     return NextResponse.json({
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
       error: result.stderr || result.compileOutput || result.message || '',
     });
   } catch (error) {
-    if (error instanceof Judge0ServiceError) {
+    if (error instanceof PistonServiceError) {
       return NextResponse.json(
         {
           output: '',

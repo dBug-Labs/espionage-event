@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { getSession } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { getStarterCode, isShortcutBlocked } from '@/lib/round2';
+import { getQuestionLanguageIds, getStarterCode, isShortcutBlocked } from '@/lib/round2';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
 
@@ -20,6 +20,12 @@ interface CodingQuestion {
   points: number;
   difficulty: string;
   starterTemplates?: { language: string; code: string }[];
+}
+
+interface LanguageOption {
+  id: string;
+  label: string;
+  monaco: string;
 }
 
 interface TestResult {
@@ -41,6 +47,7 @@ export default function Round2Page() {
   const router = useRouter();
   const session = getSession();
   const [questions, setQuestions] = useState<CodingQuestion[]>([]);
+  const [supportedLanguages, setSupportedLanguages] = useState<LanguageOption[]>([]);
   const [activeQ, setActiveQ] = useState(0);
   const [language, setLanguage] = useState('python');
   const [code, setCode] = useState('');
@@ -69,8 +76,15 @@ export default function Round2Page() {
           return;
         }
         setQuestions(data.questions || []);
+        setSupportedLanguages(data.supportedLanguages || []);
         if (data.questions?.length) {
-          setCode(getStarterCode(data.questions[0], language));
+          const firstQuestion = data.questions[0];
+          const availableLanguages = (data.supportedLanguages || []).filter((item: LanguageOption) =>
+            getQuestionLanguageIds(firstQuestion).includes(item.id as 'c' | 'cpp' | 'java' | 'python')
+          );
+          const defaultLanguage = availableLanguages[0]?.id || language;
+          setLanguage(defaultLanguage);
+          setCode(getStarterCode(firstQuestion, defaultLanguage));
         }
       } catch {
         setError('Network error.');
@@ -143,6 +157,11 @@ export default function Round2Page() {
     }
   }
 
+  function getAvailableLanguages(question: CodingQuestion): LanguageOption[] {
+    const questionLanguages = new Set(getQuestionLanguageIds(question));
+    return supportedLanguages.filter((item) => questionLanguages.has(item.id as 'c' | 'cpp' | 'java' | 'python'));
+  }
+
   function switchQuestion(nextIndex: number) {
     const currentQuestion = questions[activeQ];
     if (currentQuestion) {
@@ -151,8 +170,13 @@ export default function Round2Page() {
     }
 
     const nextQuestion = questions[nextIndex];
-    const saved = codeRef.current[nextQuestion._id]?.[language];
-    setCode(saved || getStarterCode(nextQuestion, language));
+    const availableLanguages = getAvailableLanguages(nextQuestion);
+    const nextLanguage = availableLanguages.some((item) => item.id === language)
+      ? language
+      : (availableLanguages[0]?.id ?? language);
+    const saved = codeRef.current[nextQuestion._id]?.[nextLanguage];
+    setLanguage(nextLanguage);
+    setCode(saved || getStarterCode(nextQuestion, nextLanguage));
     setActiveQ(nextIndex);
     setOutput(null);
     setSubmitResult(null);
@@ -227,11 +251,15 @@ export default function Round2Page() {
     }
   }
 
-  const wrapperClass = "bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-hidden terminal-bg relative min-h-screen";
+  const wrapperClass = 'bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-hidden terminal-bg relative min-h-screen';
+  const question = questions[activeQ];
+  const availableLanguages = question ? getAvailableLanguages(question) : [];
+  const currentLanguage = availableLanguages.find((item) => item.id === language);
+  const languageSummary = supportedLanguages.map((item) => item.label.replace(/\s*\(.+\)/, '')).join(', ');
 
   if (loading) {
     return (
-      <div className={wrapperClass + " flex items-center justify-center p-6"}>
+      <div className={wrapperClass + ' flex items-center justify-center p-6'}>
         <div className="text-center">
           <div className="w-12 h-12 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-6 shadow-[0_0_15px_rgba(255,85,64,0.3)]" />
           <p className="font-headline text-primary tracking-[0.2em] uppercase text-xs animate-pulse">Initializing Terminal...</p>
@@ -242,7 +270,7 @@ export default function Round2Page() {
 
   if (error) {
     return (
-      <div className={wrapperClass + " flex items-center justify-center p-6 text-center"}>
+      <div className={wrapperClass + ' flex items-center justify-center p-6 text-center'}>
         <div className="bg-surface-container-low p-8 border border-error/30 max-w-md w-full">
           <span className="material-symbols-outlined text-error text-5xl mb-4">block</span>
           <p className="font-headline text-error text-sm tracking-widest uppercase mb-6">{error}</p>
@@ -256,21 +284,21 @@ export default function Round2Page() {
 
   if (!started) {
     return (
-      <div className={wrapperClass + " flex items-center justify-center p-6"}>
+      <div className={wrapperClass + ' flex items-center justify-center p-6'}>
         <div className="fixed inset-0 scanline opacity-10 pointer-events-none z-0"></div>
         <div className="relative z-10 w-full max-w-2xl bg-surface-container-low p-8 md:p-12 border border-outline-variant/30 shadow-[0_0_30px_rgba(255,85,64,0.05)] text-center">
           <div className="absolute top-0 right-0 p-4 font-headline text-[10px] text-outline-variant uppercase tracking-widest">
             Ref: R2-COMPILE
           </div>
-          
+
           <span className="material-symbols-outlined text-primary text-5xl mb-6">terminal</span>
           <h1 className="font-headline text-3xl md:text-5xl font-black uppercase tracking-tighter text-on-surface mb-2">
             ROUND 2: <span className="text-primary glow-red">FINAL HACK</span>
           </h1>
           <p className="text-secondary font-headline text-xs tracking-[0.2em] uppercase mb-8">
-            {questions.length} assigned missions • Languages: C, C++, Java, Python
+            {questions.length} assigned missions • Languages: {languageSummary || 'Loading'}
           </p>
-          
+
           <div className="bg-surface-container-highest border border-error/30 p-6 mb-10 text-left relative overflow-hidden">
             <div className="absolute top-0 left-0 w-1 h-full bg-error"></div>
             <h3 className="font-headline text-xs text-error font-bold tracking-[0.2em] uppercase mb-4 flex items-center gap-2">
@@ -308,7 +336,7 @@ export default function Round2Page() {
 
   if (disqualified) {
     return (
-      <div className={wrapperClass + " flex items-center justify-center p-6 text-center"}>
+      <div className={wrapperClass + ' flex items-center justify-center p-6 text-center'}>
         <div className="fixed inset-0 scanline opacity-10 pointer-events-none z-0"></div>
         <div className="relative z-10 w-full max-w-2xl bg-[#0a0000] p-10 border border-error/50 shadow-[0_0_50px_rgba(255,0,0,0.2)]">
           <span className="material-symbols-outlined text-error text-7xl mb-6">lock</span>
@@ -327,12 +355,8 @@ export default function Round2Page() {
     );
   }
 
-  const question = questions[activeQ];
-  const monacoLang: Record<string, string> = { c: 'c', cpp: 'cpp', java: 'java', python: 'python' };
-
   return (
     <div className="flex h-screen bg-surface text-on-surface font-body overflow-hidden terminal-bg relative selection:bg-primary-container selection:text-on-primary-container">
-      {/* Warning overlay overlay */}
       {showWarning && (
         <div className="fixed inset-0 bg-error/90 z-[9999] flex items-center justify-center animate-[pulse_0.5s_ease-in-out_infinite] backdrop-blur-sm">
           <div className="bg-[#111] border-2 border-error p-10 max-w-xl w-full text-center shadow-[0_0_100px_rgba(255,0,0,0.5)]">
@@ -343,7 +367,6 @@ export default function Round2Page() {
         </div>
       )}
 
-      {/* Sidebar: Missions */}
       <div className="w-64 bg-surface-container-low border-r border-outline-variant/30 flex flex-col shrink-0 relative z-10 shadow-xl">
         <div className="p-4 border-b border-outline-variant/30 bg-[#0e0e0e] flex items-center justify-between">
           <p className="font-headline text-[10px] tracking-widest text-primary font-bold uppercase flex items-center gap-2">
@@ -352,7 +375,7 @@ export default function Round2Page() {
           </p>
           <span className="font-mono text-[10px] bg-primary/10 text-primary px-2 py-0.5 border border-primary/20">{questions.length}</span>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
           {questions.map((item, index) => {
             const isAc = verdicts[item._id] === 'Accepted';
@@ -372,10 +395,10 @@ export default function Round2Page() {
                   </span>
                 )}
               </button>
-            )
+            );
           })}
         </div>
-        
+
         <div className="p-4 border-t border-outline-variant/30 bg-[#0e0e0e]">
           <div className="flex items-center justify-between font-headline text-[10px] tracking-widest uppercase">
             <span className="text-secondary">Security Status</span>
@@ -389,14 +412,13 @@ export default function Round2Page() {
         </div>
       </div>
 
-      {/* Main Workspace */}
       <div className="flex-1 flex flex-col min-w-0 relative z-10 bg-[#0e0e0e]">
         {question && (
           <div className="h-[35%] overflow-y-auto border-b border-outline-variant/30 bg-surface-container-highest p-6 custom-scrollbar relative">
             <div className="absolute top-0 right-0 p-2 font-headline text-[8px] text-outline-variant uppercase tracking-widest">
               ID: {question._id}
             </div>
-            
+
             <div className="flex flex-wrap items-center gap-3 mb-6">
               <h2 className="font-headline text-2xl font-black uppercase text-primary tracking-wider glow-red">
                 {question.title}
@@ -408,11 +430,11 @@ export default function Round2Page() {
                 {question.difficulty.toUpperCase()}
               </span>
             </div>
-            
+
             <div className="prose prose-invert prose-sm max-w-none mb-8">
               <p className="text-on-surface-variant font-body leading-relaxed whitespace-pre-wrap">{question.description}</p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <h4 className="font-headline text-[10px] uppercase tracking-widest text-secondary mb-2 border-b border-outline-variant/20 pb-1">Input Format</h4>
@@ -430,25 +452,25 @@ export default function Round2Page() {
           </div>
         )}
 
-        {/* Toolbar */}
         <div className="h-14 bg-surface-container-low border-b border-outline-variant/30 flex items-center justify-between px-4 shrink-0 shadow-md">
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-secondary text-[16px]">code</span>
-            <select 
-              value={language} 
-              onChange={(e) => switchLanguage(e.target.value)} 
+            <select
+              value={language}
+              onChange={(e) => switchLanguage(e.target.value)}
               className="bg-[#0e0e0e] border border-outline-variant/50 text-on-surface text-xs font-mono uppercase tracking-widest p-1.5 outline-none hover:border-primary/50 focus:border-primary transition-colors"
             >
-              <option value="c">C (GCC)</option>
-              <option value="cpp">C++ (G++)</option>
-              <option value="java">Java (JDK)</option>
-              <option value="python">Python 3</option>
+              {availableLanguages.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex items-center gap-3">
-            <button 
-              onClick={handleRun} 
-              disabled={running || submitting} 
+            <button
+              onClick={handleRun}
+              disabled={running || submitting}
               className={`px-6 py-1.5 font-headline text-[10px] font-bold tracking-widest uppercase border transition-all flex items-center gap-2 ${(running || submitting) ? 'bg-surface-container-highest border-outline-variant/30 text-secondary cursor-not-allowed' : 'bg-surface-container-highest border-outline-variant/50 text-on-surface hover:text-primary hover:border-primary'}`}
             >
               {running ? (
@@ -457,9 +479,9 @@ export default function Round2Page() {
                 <><span className="material-symbols-outlined text-[14px]">play_arrow</span> RUN CODE</>
               )}
             </button>
-            <button 
-              onClick={handleSubmit} 
-              disabled={running || submitting} 
+            <button
+              onClick={handleSubmit}
+              disabled={running || submitting}
               className={`px-6 py-1.5 font-headline text-[10px] font-bold tracking-widest uppercase transition-all flex items-center gap-2 ${(running || submitting) ? 'bg-primary/20 text-primary/50 cursor-not-allowed border border-primary/10' : 'bg-primary text-on-primary hover:bg-primary-container active:scale-[0.98] shadow-[0_0_15px_rgba(255,85,64,0.3)]'}`}
             >
               {submitting ? (
@@ -471,14 +493,13 @@ export default function Round2Page() {
           </div>
         </div>
 
-        {/* Editor */}
         <div className="flex-1 min-h-0 relative">
           <div className="absolute top-2 right-2 z-10 opactiy-50 pointer-events-none">
             <span className="font-headline text-[8px] tracking-[0.3em] uppercase text-secondary/40">SECURE TERMINAL ACTIVE</span>
           </div>
           <Editor
             height="100%"
-            language={monacoLang[language] || 'python'}
+            language={currentLanguage?.monaco || 'python'}
             value={code}
             onChange={(value) => setCode(value || '')}
             theme="vs-dark"
@@ -491,15 +512,14 @@ export default function Round2Page() {
               scrollBeyondLastLine: false,
               wordWrap: 'on',
               smoothScrolling: true,
-              cursorBlinking: "smooth",
-              cursorSmoothCaretAnimation: "on",
-              renderLineHighlight: "all",
+              cursorBlinking: 'smooth',
+              cursorSmoothCaretAnimation: 'on',
+              renderLineHighlight: 'all',
             }}
           />
         </div>
       </div>
 
-      {/* Sidebar: Output Area */}
       <div className="w-80 bg-surface-container-low border-l border-outline-variant/30 flex flex-col shrink-0 relative z-10 shadow-[-10px_0_20px_rgba(0,0,0,0.5)]">
         <div className="p-4 border-b border-outline-variant/30 bg-[#0e0e0e] flex items-center gap-2">
           <span className="material-symbols-outlined text-primary text-sm">terminal</span>
@@ -507,7 +527,7 @@ export default function Round2Page() {
             EXECUTION STDOUT
           </p>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto bg-[#0a0a0a] p-4 font-mono text-xs custom-scrollbar">
           {!output && !submitResult && (
             <div className="h-full flex flex-col items-center justify-center text-center opacity-30 mt-10">
@@ -524,7 +544,7 @@ export default function Round2Page() {
                   STATUS: {output.status}
                 </span>
               </div>
-              
+
               {output.compile_output && (
                 <div>
                   <p className="text-[#6b7280] text-[9px] uppercase tracking-wider mb-1">Compiler Output</p>
@@ -571,7 +591,6 @@ export default function Round2Page() {
           )}
         </div>
       </div>
-
     </div>
   );
 }

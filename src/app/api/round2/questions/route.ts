@@ -3,7 +3,8 @@ import connectToDatabase from '@/lib/mongodb';
 import CodingQuestion from '@/models/CodingQuestion';
 import Participant from '@/models/Participant';
 import { getConfig } from '@/models/EventConfig';
-import { pickRound2Questions } from '@/lib/round2';
+import { getSupportedRound2Languages, pickRound2Questions } from '@/lib/round2';
+import { getPistonRuntimes, PistonServiceError } from '@/lib/piston';
 
 export async function GET(req: NextRequest) {
   try {
@@ -32,8 +33,15 @@ export async function GET(req: NextRequest) {
       email.toLowerCase()
     );
 
-    return NextResponse.json({ questions });
+    const runtimes = await getPistonRuntimes();
+    const supportedLanguages = getSupportedRound2Languages(runtimes);
+
+    return NextResponse.json({ questions, supportedLanguages });
   } catch (err) {
+    if (err instanceof PistonServiceError) {
+      return NextResponse.json({ error: err.message }, { status: err.statusCode });
+    }
+
     console.error('[round2/questions]', err);
     return NextResponse.json({ error: 'Server error.' }, { status: 500 });
   }
