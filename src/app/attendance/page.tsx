@@ -4,32 +4,35 @@ import { useEffect, useState, useRef } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import Link from 'next/link';
 
+type AttendanceStage = 'round1' | 'round2';
+
 export default function AttendancePage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
+  const [stage, setStage] = useState<AttendanceStage>('round1');
   const [scanResult, setScanResult] = useState<{ type: 'success' | 'error' | 'warning', message: string, teamInfo?: any } | null>(null);
   const [manualTeamId, setManualTeamId] = useState('');
-  const [stats, setStats] = useState({ checkedIn: 0, totalPaid: 0 });
+  const [stats, setStats] = useState({ checkedIn: 0, totalEligible: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
 
   const lastScannedRef = useRef<string>('');
 
-  const fetchStats = async () => {
+  const fetchStats = async (activeStage: AttendanceStage = stage) => {
     try {
-      const res = await fetch('/api/attendance/stats', {
+      const res = await fetch(`/api/attendance/stats?stage=${activeStage}`, {
         headers: { Authorization: `Bearer ${password}` }
       });
       if (res.ok) {
         const data = await res.json();
-        setStats(data);
+        setStats({ checkedIn: data.checkedIn ?? 0, totalEligible: data.totalEligible ?? 0 });
       }
-    } catch (e) { }
+    } catch {}
   };
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchStats();
-      const interval = setInterval(fetchStats, 10000);
+      fetchStats(stage);
+      const interval = setInterval(() => fetchStats(stage), 10000);
 
       const scanner = new Html5QrcodeScanner("reader", {
         fps: 10,
@@ -44,7 +47,7 @@ export default function AttendancePage() {
         clearInterval(interval);
       };
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, stage]);
 
   async function login(e: React.FormEvent) {
     e.preventDefault();
@@ -60,19 +63,23 @@ export default function AttendancePage() {
     }
   }
 
+  const normalizeTeamId = (value: string) => value.trim().toUpperCase();
+
   const markAttendance = async (teamId: string) => {
+    const normalizedTeamId = normalizeTeamId(teamId);
     if (isProcessing) return;
-    if (lastScannedRef.current === teamId) return;
+    if (!normalizedTeamId) return;
+    if (lastScannedRef.current === `${stage}:${normalizedTeamId}`) return;
 
     setIsProcessing(true);
-    lastScannedRef.current = teamId;
+    lastScannedRef.current = `${stage}:${normalizedTeamId}`;
     setScanResult(null);
 
     try {
       const res = await fetch('/api/attendance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teamId: teamId.trim() })
+        body: JSON.stringify({ teamId: normalizedTeamId, stage })
       });
 
       const data = await res.json();
@@ -80,14 +87,13 @@ export default function AttendancePage() {
       if (res.ok) {
         setScanResult({
           type: 'success',
-          message: `CHECK-IN SUCCESSFUL`,
+          message: `${stage === 'round1' ? 'ROUND 1' : 'ROUND 2'} CHECK-IN SUCCESSFUL`,
           teamInfo: data
         });
-        fetchStats();
+        fetchStats(stage);
 
         const audio = new Audio('/success-beep.mp3');
-        audio.play().catch(() => { }).then(() => { });
-
+        audio.play().catch(() => {}).then(() => {});
       } else if (data.alreadyCheckedIn) {
         setScanResult({
           type: 'warning',
@@ -99,7 +105,7 @@ export default function AttendancePage() {
           message: data.error || 'VERIFICATION FAILED'
         });
       }
-    } catch (err) {
+    } catch {
       setScanResult({ type: 'error', message: 'NETWORK ERROR' });
     } finally {
       setIsProcessing(false);
@@ -108,12 +114,13 @@ export default function AttendancePage() {
   };
 
   function onScanSuccess(decodedText: string) {
-    if (decodedText.startsWith('HOU-')) {
-      markAttendance(decodedText);
+    const normalized = normalizeTeamId(decodedText);
+    if (normalized.startsWith('ESP-')) {
+      markAttendance(normalized);
     }
   }
 
-  function onScanFailure(error: any) { }
+  function onScanFailure() {}
 
   const wrapperClass = "bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-hidden terminal-bg relative min-h-screen flex items-center justify-center p-6";
 
@@ -139,7 +146,7 @@ export default function AttendancePage() {
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="........"
                 className="w-full bg-surface-container-highest border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-on-surface font-headline tracking-widest transition-all px-4 py-3 placeholder:text-outline-variant/40"
               />
             </div>
@@ -181,21 +188,42 @@ export default function AttendancePage() {
       </nav>
 
       <div className="relative z-10 w-full max-w-xl mx-auto mt-12">
-
-        {/* Header & Stats */}
         <div className="text-center mb-8">
           <h1 className="font-headline text-3xl font-black uppercase text-on-surface tracking-widest mb-4">
             ENTRY <span className="text-primary glow-red">VERIFICATION</span>
           </h1>
+
+          <div className="flex justify-center gap-3 mb-5">
+            <button
+              onClick={() => { setStage('round1'); setScanResult(null); fetchStats('round1'); }}
+              className={`px-5 py-3 border font-headline text-[10px] tracking-widest uppercase ${stage === 'round1' ? 'bg-primary text-on-primary border-primary' : 'border-outline-variant/40 text-secondary hover:text-on-surface hover:border-primary/50'}`}
+            >
+              Round 1 Attendance
+            </button>
+            <button
+              onClick={() => { setStage('round2'); setScanResult(null); fetchStats('round2'); }}
+              className={`px-5 py-3 border font-headline text-[10px] tracking-widest uppercase ${stage === 'round2' ? 'bg-primary text-on-primary border-primary' : 'border-outline-variant/40 text-secondary hover:text-on-surface hover:border-primary/50'}`}
+            >
+              Round 2 Attendance
+            </button>
+          </div>
+
+          <p className="text-secondary text-xs mb-4">
+            {stage === 'round1'
+              ? 'Round 1 check-in is only for RSVP-confirmed teams.'
+              : 'Round 2 check-in is only for shortlisted teams.'}
+          </p>
+
           <div className="bg-primary/5 border border-primary/20 p-4 inline-block shadow-[0_0_15px_rgba(255,85,64,0.1)]">
-            <span className="block font-headline text-[10px] text-primary uppercase tracking-[0.2em] mb-1">Live Check-ins</span>
+            <span className="block font-headline text-[10px] text-primary uppercase tracking-[0.2em] mb-1">
+              {stage === 'round1' ? 'Round 1 Check-ins' : 'Round 2 Check-ins'}
+            </span>
             <div className="font-headline text-3xl font-black text-on-surface tracking-widest">
-              {stats.checkedIn} <span className="text-on-surface-variant text-xl">/ {stats.totalPaid}</span>
+              {stats.checkedIn} <span className="text-on-surface-variant text-xl">/ {stats.totalEligible}</span>
             </div>
           </div>
         </div>
 
-        {/* QR Scanner */}
         <div className="bg-surface-container-low border border-outline-variant/30 p-2 mb-8 shadow-2xl relative">
           <div className="absolute top-0 right-0 p-2 font-headline text-[8px] text-outline-variant uppercase tracking-widest z-20 bg-surface-container-low">
             OPTICAL-SENSOR_01
@@ -241,13 +269,12 @@ export default function AttendancePage() {
           <div id="reader" className="w-full"></div>
         </div>
 
-        {/* Manual Entry Fallback */}
         <div className="flex gap-4 mb-8">
           <input
             type="text"
-            placeholder="MANUAL ID (HOU-001)"
+            placeholder="MANUAL ID (ESP-001)"
             value={manualTeamId}
-            onChange={(e) => setManualTeamId(e.target.value.toUpperCase())}
+            onChange={(e) => setManualTeamId(normalizeTeamId(e.target.value))}
             className="flex-1 bg-surface-container-highest border border-outline-variant/50 focus:border-primary focus:ring-0 text-on-surface font-headline tracking-widest text-sm px-4 py-3 placeholder:text-outline-variant/40 outline-none uppercase"
           />
           <button
@@ -259,10 +286,8 @@ export default function AttendancePage() {
           </button>
         </div>
 
-        {/* Scan Result Notification */}
         {scanResult && (
           <div className={`p-6 border relative overflow-hidden animate-[fadeInUp_0.3s_ease] ${scanResult.type === 'success' ? 'bg-green-500/10 border-green-500/30' : scanResult.type === 'warning' ? 'bg-orange-500/10 border-orange-500/30' : 'bg-error/10 border-error/30'}`}>
-            {/* Background absolute tint */}
             <div className={`absolute inset-0 opacity-10 ${scanResult.type === 'success' ? 'bg-green-500' : scanResult.type === 'warning' ? 'bg-orange-500' : 'bg-error'}`}></div>
 
             <div className="relative z-10">
@@ -289,7 +314,6 @@ export default function AttendancePage() {
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
