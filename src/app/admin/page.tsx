@@ -23,6 +23,8 @@ interface Participant {
   rsvpStatus: 'PENDING' | 'CONFIRMED' | 'DECLINED';
   rsvpAt: string | null;
   attendance?: { present: boolean; checkedAt: string };
+  attendanceRound1?: { present: boolean; checkedAt: string | null };
+  attendanceRound2?: { present: boolean; checkedAt: string | null };
   round1Score: number | null;
   round1SubmittedAt: string | null;
   round1Warnings: number;
@@ -441,7 +443,7 @@ export default function AdminPage() {
     totalMembers,
     rsvpConfirmed,
     rsvpConfirmedMembers,
-    checkedIn: participants.filter((p) => p.attendance?.present).length,
+    checkedIn: participants.filter((p) => p.attendanceRound1?.present || p.attendance?.present).length,
     round1Done: participants.filter((p) => p.round1SubmittedAt).length,
     shortlisted: participants.filter((p) => p.isShortlisted).length,
   };
@@ -628,7 +630,14 @@ export default function AdminPage() {
                             </span>
                           </td>
                           <td className="p-4">
-                            {p.attendance?.present ? <span className="text-green-500 material-symbols-outlined text-[16px]">check_circle</span> : <span className="text-outline-variant material-symbols-outlined text-[16px]">cancel</span>}
+                            <div className="flex flex-col gap-1">
+                              <span className={`font-headline text-[8px] tracking-widest uppercase ${p.attendanceRound1?.present || p.attendance?.present ? 'text-green-500' : 'text-outline-variant'}`}>
+                                R1 {p.attendanceRound1?.present || p.attendance?.present ? 'YES' : 'NO'}
+                              </span>
+                              <span className={`font-headline text-[8px] tracking-widest uppercase ${p.attendanceRound2?.present ? 'text-green-500' : 'text-outline-variant'}`}>
+                                R2 {p.attendanceRound2?.present ? 'YES' : 'NO'}
+                              </span>
+                            </div>
                           </td>
                           <td className="p-4">
                             <button onClick={() => handleDeleteParticipant(p.participantId)} className="text-secondary hover:text-error transition-colors" title="Delete">

@@ -24,6 +24,14 @@ export interface IParticipant extends Document {
     present: boolean;
     checkedAt: Date | null;
   };
+  attendanceRound1: {
+    present: boolean;
+    checkedAt: Date | null;
+  };
+  attendanceRound2: {
+    present: boolean;
+    checkedAt: Date | null;
+  };
   round1Score: number | null;
   round1SubmittedAt: Date | null;
   round1Warnings: number;
@@ -94,6 +102,14 @@ const ParticipantSchema = new Schema<IParticipant>(
     },
     rsvpAt: { type: Date, default: null },
     attendance: {
+      present: { type: Boolean, default: false },
+      checkedAt: { type: Date, default: null },
+    },
+    attendanceRound1: {
+      present: { type: Boolean, default: false },
+      checkedAt: { type: Date, default: null },
+    },
+    attendanceRound2: {
       present: { type: Boolean, default: false },
       checkedAt: { type: Date, default: null },
     },

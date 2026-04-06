@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     const participants = await Participant.find().sort({ createdAt: 1 }).lean();
 
     const rows: string[] = [
-      'Team ID,Name,Email,College Email,Reg No,Phone,Team Type,Partner Name,Partner Email,Partner College Email,Partner Reg No,Partner Phone,RSVP Status,RSVP At,Attendance,Checked In At,Round 1 Score,Shortlisted,Registered At',
+      'Team ID,Name,Email,College Email,Reg No,Phone,Team Type,Partner Name,Partner Email,Partner College Email,Partner Reg No,Partner Phone,RSVP Status,RSVP At,Round 1 Attendance,Round 1 Checked In At,Round 2 Attendance,Round 2 Checked In At,Round 1 Score,Shortlisted,Registered At',
     ];
 
     for (const p of participants) {
@@ -37,8 +37,14 @@ export async function GET(req: NextRequest) {
           p.partner ? p.partner.phone : '',
           p.rsvpStatus,
           p.rsvpAt ? `"${new Date(p.rsvpAt).toLocaleString('en-IN')}"` : 'N/A',
-          p.attendance?.present ? 'Present' : 'Absent',
-          p.attendance?.checkedAt ? `"${new Date(p.attendance.checkedAt).toLocaleString('en-IN')}"` : 'N/A',
+          p.attendanceRound1?.present || p.attendance?.present ? 'Present' : 'Absent',
+          p.attendanceRound1?.checkedAt
+            ? `"${new Date(p.attendanceRound1.checkedAt).toLocaleString('en-IN')}"`
+            : p.attendance?.checkedAt
+              ? `"${new Date(p.attendance.checkedAt).toLocaleString('en-IN')}"`
+              : 'N/A',
+          p.attendanceRound2?.present ? 'Present' : 'Absent',
+          p.attendanceRound2?.checkedAt ? `"${new Date(p.attendanceRound2.checkedAt).toLocaleString('en-IN')}"` : 'N/A',
           p.round1Score ?? '',
           p.isShortlisted ? 'Yes' : 'No',
           `"${new Date(p.createdAt).toLocaleString('en-IN')}"`,
