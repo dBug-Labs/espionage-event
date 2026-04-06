@@ -9,7 +9,7 @@ export interface ICodingQuestion extends Document {
   sampleInput: string;
   sampleOutput: string;
   hiddenTestCases: { input: string; expectedOutput: string }[];
-  difficulty: 'easy' | 'medium';
+  difficulty: 'easy' | 'medium' | 'hard';
   points: number;
   timeLimit: number; // in seconds
   memoryLimit: number; // in KB
@@ -33,7 +33,7 @@ const CodingQuestionSchema = new Schema<ICodingQuestion>(
         expectedOutput: { type: String, default: '' },
       },
     ],
-    difficulty: { type: String, enum: ['easy', 'medium'], default: 'easy' },
+    difficulty: { type: String, enum: ['easy', 'medium', 'hard'], default: 'easy' },
     points: { type: Number, default: 10 },
     timeLimit: { type: Number, default: 2 },
     memoryLimit: { type: Number, default: 262144 },

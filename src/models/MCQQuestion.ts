@@ -5,7 +5,7 @@ export interface IMCQQuestion extends Document {
   options: string[];
   correctAnswer: number; // index into options (0-3)
   category: 'cyber' | 'logic' | 'coding';
-  difficulty: 'easy' | 'medium';
+  difficulty: 'easy' | 'medium' | 'hard';
   points: number;
   order: number;
 }
@@ -16,7 +16,7 @@ const MCQQuestionSchema = new Schema<IMCQQuestion>(
     options: { type: [String], required: true, validate: [(v: string[]) => v.length === 4, 'Must have exactly 4 options'] },
     correctAnswer: { type: Number, required: true, min: 0, max: 3 },
     category: { type: String, enum: ['cyber', 'logic', 'coding'], required: true },
-    difficulty: { type: String, enum: ['easy', 'medium'], default: 'easy' },
+    difficulty: { type: String, enum: ['easy', 'medium', 'hard'], default: 'easy' },
     points: { type: Number, default: 1 },
     order: { type: Number, default: 0 },
   },

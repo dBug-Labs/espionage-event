@@ -4,7 +4,7 @@ import CodingQuestion from '@/models/CodingQuestion';
 import Participant from '@/models/Participant';
 import { getConfig } from '@/models/EventConfig';
 import { PistonServiceError, executePistonSubmission, getPistonRuntimes } from '@/lib/piston';
-import { buildSubmissionSource, pickRound2Questions, resolvePistonRuntime } from '@/lib/round2';
+import { buildSubmissionSource, pickRound2Questions, resolvePistonRuntime, ROUND2_QUESTION_COUNT } from '@/lib/round2';
 
 // Submit against hidden test cases — scoring
 export async function POST(req: NextRequest) {
@@ -26,19 +26,27 @@ export async function POST(req: NextRequest) {
     const question = await CodingQuestion.findById(questionId);
     if (!question) return NextResponse.json({ error: 'Question not found.' }, { status: 404 });
 
-    const visibleQuestions = await CodingQuestion.find({}, '_id order points').sort({ order: 1 }).lean();
-    const assignedQuestions = pickRound2Questions(
-      visibleQuestions.map((item) => ({
-        _id: item._id.toString(),
-        order: item.order,
-        points: item.points,
-      })),
-      email.toLowerCase()
-    );
-    const assignedIds = new Set(assignedQuestions.map((item) => item._id));
-    if (!assignedIds.has(questionId)) {
+    const visibleQuestions = await CodingQuestion.find({}, '_id order points difficulty').sort({ order: 1 }).lean();
+    const normalizedQuestions = visibleQuestions.map((item) => ({
+      _id: item._id.toString(),
+      order: item.order,
+      points: item.points,
+      difficulty: item.difficulty,
+    }));
+
+    let assignedIds = participant.round2QuestionIds ?? [];
+    const assignedQuestionCount = normalizedQuestions.filter((item) => assignedIds.includes(item._id)).length;
+    if (assignedIds.length !== ROUND2_QUESTION_COUNT || assignedQuestionCount !== assignedIds.length) {
+      assignedIds = pickRound2Questions(normalizedQuestions, email.toLowerCase()).map((item) => item._id);
+      participant.round2QuestionIds = assignedIds;
+      await participant.save();
+    }
+
+    if (!assignedIds.includes(questionId)) {
       return NextResponse.json({ error: 'Question not assigned to this login.' }, { status: 403 });
     }
+
+    const assignedQuestions = normalizedQuestions.filter((item) => assignedIds.includes(item._id));
 
     const runtime = resolvePistonRuntime(await getPistonRuntimes(), language);
     if (!runtime) return NextResponse.json({ error: 'Unsupported language.' }, { status: 400 });
@@ -82,6 +90,7 @@ export async function POST(req: NextRequest) {
 
     // Calculate score for this question
     const scoreForQuestion = passed === total ? question.points : 0;
+    const testcaseScorePercent = total > 0 ? Math.round((passed / total) * 10000) / 100 : 0;
 
     // Store submission
     participant.round2Submissions.push({
@@ -91,6 +100,30 @@ export async function POST(req: NextRequest) {
       verdict: passed === total ? 'Accepted' : verdict,
       submittedAt: new Date(),
     });
+
+    participant.round2FinalSubmissions ??= [];
+
+    const finalSubmission = {
+      questionId,
+      questionTitle: question.title,
+      code,
+      language,
+      verdict: passed === total ? 'Accepted' : verdict,
+      passed,
+      total,
+      testcaseScorePercent,
+      submittedAt: new Date(),
+    };
+
+    const existingFinalIndex = participant.round2FinalSubmissions.findIndex(
+      (submission: { questionId: string }) => submission.questionId === questionId
+    );
+
+    if (existingFinalIndex >= 0) {
+      participant.round2FinalSubmissions[existingFinalIndex] = finalSubmission;
+    } else {
+      participant.round2FinalSubmissions.push(finalSubmission);
+    }
 
     // Update total round2 score
     // Recalculate from all accepted submissions

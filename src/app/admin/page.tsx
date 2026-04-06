@@ -28,6 +28,32 @@ interface Participant {
   round1Warnings: number;
   isShortlisted: boolean;
   round2Score: number | null;
+  round2AiScore?: number | null;
+  round2FinalScore?: number | null;
+  round2FinalSubmissions?: {
+    questionId: string;
+    questionTitle: string;
+    code: string;
+    language: string;
+    verdict: string;
+    passed: number;
+    total: number;
+    testcaseScorePercent: number;
+    submittedAt: string;
+  }[];
+  round2Evaluations?: {
+    questionId: string;
+    questionTitle: string;
+    language: string;
+    verdict: string;
+    testcaseScorePercent: number;
+    aiScorePercent: number;
+    finalScorePercent: number;
+    rationale: string;
+    strengths: string[];
+    issues: string[];
+    evaluatedAt: string;
+  }[];
   createdAt: string;
 }
 
@@ -68,7 +94,7 @@ interface CodingQuestion {
   order: number;
 }
 
-type Tab = 'participants' | 'controls' | 'round1' | 'announcements' | 'questions';
+type Tab = 'participants' | 'controls' | 'round1' | 'round2' | 'announcements' | 'questions';
 
 export default function AdminPage() {
   const [password, setPassword] = useState('');
@@ -93,6 +119,8 @@ export default function AdminPage() {
 
   const [sendingRSVP, setSendingRSVP] = useState(false);
   const [sendingQR, setSendingQR] = useState(false);
+  const [evaluatingRound2, setEvaluatingRound2] = useState(false);
+  const [selectedRound2ParticipantId, setSelectedRound2ParticipantId] = useState('');
 
   // Questions State
   const [mcqQuestions, setMcqQuestions] = useState<MCQQuestion[]>([]);
@@ -105,8 +133,8 @@ export default function AdminPage() {
     options: ['', '', '', ''],
     correctAnswer: 0,
     category: 'logic',
-    difficulty: 'easy',
-    points: 1,
+    difficulty: 'hard',
+    points: 2,
     order: 0
   });
 
@@ -250,6 +278,27 @@ export default function AdminPage() {
     finally { setSendingQR(false); }
   }
 
+  async function handleEvaluateRound2(participantId?: string) {
+    if (!confirm(participantId ? `Run AI evaluation for ${participantId}?` : 'Run AI evaluation for all shortlisted Round 2 participants?')) return;
+    setEvaluatingRound2(true);
+    try {
+      const res = await fetch('/api/admin/round2-evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: savedPassword, participantId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to run AI evaluation.');
+        return;
+      }
+      alert(data.message || 'AI evaluation completed.');
+      fetchParticipants(savedPassword);
+    } catch {
+      alert('Failed to run AI evaluation.');
+    } finally { setEvaluatingRound2(false); }
+  }
+
   async function handleCreateNotification() {
     if (!newNotif.title || !newNotif.message) return alert('Title and message required.');
     try {
@@ -299,7 +348,7 @@ export default function AdminPage() {
       if (res.ok) {
         alert('Added!');
         fetchQuestions(savedPassword, 'mcq');
-        setNewMCQ({ questionText: '', options: ['', '', '', ''], correctAnswer: 0, category: 'logic', difficulty: 'easy', points: 1, order: mcqQuestions.length });
+        setNewMCQ({ questionText: '', options: ['', '', '', ''], correctAnswer: 0, category: 'logic', difficulty: 'hard', points: 2, order: mcqQuestions.length });
       } else alert('Failed.');
     } catch { alert('Error.'); }
   }
@@ -504,6 +553,7 @@ export default function AdminPage() {
             { id: 'participants', label: 'AGENTS', icon: 'group' },
             { id: 'controls', label: 'SYSTEM CONTROLS', icon: 'settings' },
             { id: 'round1', label: 'R1 INTELLIGENCE', icon: 'analytics' },
+            { id: 'round2', label: 'R2 AI RESULTS', icon: 'neurology' },
             { id: 'announcements', label: 'BROADCASTS', icon: 'campaign' },
             { id: 'questions', label: 'MISSION DATABASE', icon: 'database' },
           ] as { id: Tab; label: string; icon: string }[]).map((tab) => (
@@ -730,6 +780,175 @@ export default function AdminPage() {
               )}
             </div>
           )}
+
+          {/* —— Tab: Round 2 Results —— */}
+          {activeTab === 'round2' && (() => {
+            const round2Participants = participants
+              .filter((p) => p.isShortlisted)
+              .sort((a, b) => (b.round2FinalScore ?? -1) - (a.round2FinalScore ?? -1) || (b.round2Score ?? 0) - (a.round2Score ?? 0));
+            const selectedParticipant = round2Participants.find((p) => p.participantId === selectedRound2ParticipantId) ?? round2Participants[0];
+
+            return (
+              <div className="grid grid-cols-1 xl:grid-cols-[1.3fr_1fr] gap-8">
+                <div className="space-y-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="font-headline text-sm text-primary tracking-[0.2em] uppercase">Round 2 AI Evaluation</h3>
+                      <p className="text-secondary text-xs mt-2">Uses OpenRouter to score logic quality when hidden test cases are not fully solved.</p>
+                    </div>
+                    <button
+                      onClick={() => handleEvaluateRound2()}
+                      disabled={evaluatingRound2}
+                      className="px-6 py-3 bg-primary text-on-primary font-headline font-bold text-[10px] tracking-widest uppercase hover:bg-primary-container transition-colors disabled:opacity-50 flex items-center gap-2"
+                    >
+                      <span className={`material-symbols-outlined text-[14px] ${evaluatingRound2 ? 'animate-spin' : ''}`}>{evaluatingRound2 ? 'sync' : 'neurology'}</span>
+                      {evaluatingRound2 ? 'EVALUATING...' : 'RUN AI EVALUATION'}
+                    </button>
+                  </div>
+
+                  <div className="overflow-x-auto custom-scrollbar border border-outline-variant/30">
+                    <table className="w-full text-left border-collapse min-w-[980px]">
+                      <thead>
+                        <tr className="bg-[#0a0a0a] border-b border-outline-variant text-[9px] font-headline tracking-widest uppercase text-primary">
+                          {['Rank', 'ID', 'Name', 'Raw Score', 'AI %', 'Final %', 'Solved', 'Last Submit', 'Action'].map((h) => (
+                            <th key={h} className="p-4">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {round2Participants.map((p, idx) => {
+                          const solvedCount = (p.round2FinalSubmissions || []).filter((submission) => submission.verdict === 'Accepted').length;
+                          const lastSubmission = [...(p.round2FinalSubmissions || [])].sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())[0];
+                          const selected = selectedParticipant?.participantId === p.participantId;
+                          return (
+                            <tr
+                              key={p._id}
+                              className={`border-b border-outline-variant/10 text-xs transition-colors cursor-pointer ${selected ? 'bg-primary/10' : 'hover:bg-surface-container-highest'}`}
+                              onClick={() => setSelectedRound2ParticipantId(p.participantId)}
+                            >
+                              <td className="p-4 font-headline font-bold">#{idx + 1}</td>
+                              <td className="p-4 font-mono text-primary">{p.participantId}</td>
+                              <td className="p-4 font-bold text-on-surface">{p.name}</td>
+                              <td className="p-4 text-secondary font-headline">{p.round2Score ?? '—'}</td>
+                              <td className="p-4 text-secondary font-headline">{p.round2AiScore ?? '—'}</td>
+                              <td className="p-4 font-headline text-primary font-black">{p.round2FinalScore ?? '—'}</td>
+                              <td className="p-4 text-secondary">{solvedCount}/{p.round2FinalSubmissions?.length || p.round2Evaluations?.length || 0}</td>
+                              <td className="p-4 text-secondary font-mono">{lastSubmission ? new Date(lastSubmission.submittedAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : '—'}</td>
+                              <td className="p-4">
+                                <button
+                                  onClick={(event) => { event.stopPropagation(); handleEvaluateRound2(p.participantId); }}
+                                  disabled={evaluatingRound2}
+                                  className="px-3 py-2 border border-outline-variant/40 text-on-surface font-headline text-[9px] tracking-widest uppercase hover:border-primary hover:text-primary disabled:opacity-50"
+                                >
+                                  Eval
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    {round2Participants.length === 0 && (
+                      <p className="text-center p-8 text-secondary font-headline text-xs tracking-widest uppercase">No Round 2 data found.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-[#0a0a0a] border border-outline-variant/30 p-6 space-y-6 max-h-[900px] overflow-y-auto custom-scrollbar">
+                  {!selectedParticipant ? (
+                    <p className="text-secondary font-headline text-xs tracking-widest uppercase">Select a participant to inspect Round 2 output.</p>
+                  ) : (
+                    <>
+                      <div className="border-b border-outline-variant/20 pb-4">
+                        <h3 className="font-headline text-lg text-primary tracking-widest uppercase">{selectedParticipant.name}</h3>
+                        <p className="text-secondary text-xs mt-2 font-mono">{selectedParticipant.participantId} • {selectedParticipant.email}</p>
+                        <div className="grid grid-cols-3 gap-3 mt-4 text-center">
+                          <div className="bg-surface-container-highest border border-outline-variant/20 p-3">
+                            <p className="font-headline text-[9px] text-secondary tracking-widest uppercase">Raw</p>
+                            <p className="font-headline text-lg text-on-surface">{selectedParticipant.round2Score ?? '—'}</p>
+                          </div>
+                          <div className="bg-surface-container-highest border border-outline-variant/20 p-3">
+                            <p className="font-headline text-[9px] text-secondary tracking-widest uppercase">AI %</p>
+                            <p className="font-headline text-lg text-on-surface">{selectedParticipant.round2AiScore ?? '—'}</p>
+                          </div>
+                          <div className="bg-surface-container-highest border border-outline-variant/20 p-3">
+                            <p className="font-headline text-[9px] text-secondary tracking-widest uppercase">Final %</p>
+                            <p className="font-headline text-lg text-primary">{selectedParticipant.round2FinalScore ?? '—'}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {(selectedParticipant.round2Evaluations || []).length === 0 ? (
+                        <p className="text-secondary text-xs">No AI evaluation saved yet for this participant.</p>
+                      ) : (
+                        selectedParticipant.round2Evaluations!.map((evaluation) => {
+                          const submission = selectedParticipant.round2FinalSubmissions?.find((item) => item.questionId === evaluation.questionId);
+                          return (
+                            <div key={evaluation.questionId} className="border border-outline-variant/20 bg-surface-container-highest p-4 space-y-4">
+                              <div className="flex items-start justify-between gap-4">
+                                <div>
+                                  <h4 className="font-headline text-sm text-on-surface uppercase tracking-widest">{evaluation.questionTitle}</h4>
+                                  <p className="text-secondary text-[10px] mt-1 uppercase tracking-widest">{evaluation.language} • {evaluation.verdict}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-headline text-[9px] text-secondary uppercase tracking-widest">Final %</p>
+                                  <p className="font-headline text-xl text-primary">{evaluation.finalScorePercent}</p>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-3 gap-3 text-center">
+                                <div className="border border-outline-variant/20 p-2">
+                                  <p className="font-headline text-[8px] text-secondary uppercase tracking-widest">Tests</p>
+                                  <p className="font-headline text-sm">{evaluation.testcaseScorePercent}%</p>
+                                </div>
+                                <div className="border border-outline-variant/20 p-2">
+                                  <p className="font-headline text-[8px] text-secondary uppercase tracking-widest">AI</p>
+                                  <p className="font-headline text-sm">{evaluation.aiScorePercent}%</p>
+                                </div>
+                                <div className="border border-outline-variant/20 p-2">
+                                  <p className="font-headline text-[8px] text-secondary uppercase tracking-widest">Cases</p>
+                                  <p className="font-headline text-sm">{submission ? `${submission.passed}/${submission.total}` : '—'}</p>
+                                </div>
+                              </div>
+
+                              <div>
+                                <p className="font-headline text-[9px] text-secondary uppercase tracking-widest mb-2">AI Rationale</p>
+                                <p className="text-xs text-on-surface-variant leading-relaxed">{evaluation.rationale}</p>
+                              </div>
+
+                              <div className="grid grid-cols-1 gap-3">
+                                <div>
+                                  <p className="font-headline text-[9px] text-green-500 uppercase tracking-widest mb-2">Strengths</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {(evaluation.strengths || []).length > 0 ? evaluation.strengths.map((item, index) => (
+                                      <span key={index} className="px-2 py-1 text-[10px] border border-green-500/30 bg-green-500/10 text-green-400">{item}</span>
+                                    )) : <span className="text-secondary text-[10px]">None noted</span>}
+                                  </div>
+                                </div>
+                                <div>
+                                  <p className="font-headline text-[9px] text-error uppercase tracking-widest mb-2">Issues</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {(evaluation.issues || []).length > 0 ? evaluation.issues.map((item, index) => (
+                                      <span key={index} className="px-2 py-1 text-[10px] border border-error/30 bg-error/10 text-error">{item}</span>
+                                    )) : <span className="text-secondary text-[10px]">No issues flagged</span>}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div>
+                                <p className="font-headline text-[9px] text-secondary uppercase tracking-widest mb-2">Saved Final Code</p>
+                                <pre className="bg-black/40 border border-outline-variant/20 p-3 text-[11px] text-on-surface-variant whitespace-pre-wrap overflow-x-auto custom-scrollbar max-h-80">{submission?.code || 'No code saved.'}</pre>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ── Tab: Announcements ── */}
           {activeTab === 'announcements' && (

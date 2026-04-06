@@ -67,7 +67,7 @@ export default function DashboardPage() {
   }, [session?.email]);
 
   const handleLogout = () => {
-    sessionStorage.removeItem('espionage_session');
+    localStorage.removeItem('espionage_session');
     router.push('/login');
   };
 
@@ -235,7 +235,7 @@ export default function DashboardPage() {
                   <div className="mt-1 w-4 h-4 border border-primary flex items-center justify-center">
                     {round1Status === 'COMPLETED' && <span className="material-symbols-outlined text-[10px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>}
                   </div>
-                  <span className="text-xs text-on-surface-variant group-hover:text-on-surface transition-colors">Resolve 30 critical security vulnerabilities via MCQ validation.</span>
+                  <span className="text-xs text-on-surface-variant group-hover:text-on-surface transition-colors">Resolve 25 advanced breach-analysis MCQs under secure test conditions.</span>
                 </li>
                 <li className="flex items-start gap-3 group">
                   <div className="mt-1 w-4 h-4 border border-outline-variant flex items-center justify-center">

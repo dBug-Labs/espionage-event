@@ -3,7 +3,7 @@ import connectToDatabase from '@/lib/mongodb';
 import CodingQuestion from '@/models/CodingQuestion';
 import Participant from '@/models/Participant';
 import { getConfig } from '@/models/EventConfig';
-import { getSupportedRound2Languages, pickRound2Questions } from '@/lib/round2';
+import { getSupportedRound2Languages, pickRound2Questions, ROUND2_QUESTION_COUNT, sortQuestionsByAssignedIds } from '@/lib/round2';
 import { getPistonRuntimes, PistonServiceError } from '@/lib/piston';
 
 export async function GET(req: NextRequest) {
@@ -25,13 +25,22 @@ export async function GET(req: NextRequest) {
     }
 
     const allQuestions = await CodingQuestion.find({}, '-hiddenTestCases -wrappers').sort({ order: 1 }).lean();
-    const questions = pickRound2Questions(
-      allQuestions.map((question) => ({
-        ...question,
-        _id: question._id.toString(),
-      })),
-      email.toLowerCase()
-    );
+    const normalizedQuestions = allQuestions.map((question) => ({
+      ...question,
+      _id: question._id.toString(),
+    }));
+
+    const existingIds = participant.round2QuestionIds ?? [];
+    const existingQuestions = normalizedQuestions.filter((question) => existingIds.includes(question._id));
+
+    let questions;
+    if (existingIds.length === ROUND2_QUESTION_COUNT && existingQuestions.length === existingIds.length) {
+      questions = sortQuestionsByAssignedIds(existingQuestions, existingIds);
+    } else {
+      questions = pickRound2Questions(normalizedQuestions, email.toLowerCase());
+      participant.round2QuestionIds = questions.map((question) => question._id);
+      await participant.save();
+    }
 
     const runtimes = await getPistonRuntimes();
     const supportedLanguages = getSupportedRound2Languages(runtimes);

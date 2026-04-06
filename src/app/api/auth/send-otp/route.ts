@@ -23,9 +23,11 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
 
+    const normalizedEmail = email.trim().toLowerCase();
+
     // Check if participant exists and has confirmed RSVP (only team leaders can login)
     const participant = await Participant.findOne({
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
       rsvpStatus: 'CONFIRMED',
     });
 
@@ -36,51 +38,61 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate 6-digit OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    const eventDate = process.env.EVENT_DATE || 'TBA';
+    const eventTime = process.env.EVENT_TIME || 'TBA';
+    const eventVenue = process.env.EVENT_VENUE || 'TBA';
 
-    // Delete old OTPs for this email
-    await OTP.deleteMany({ email: email.trim().toLowerCase() });
+    await OTP.deleteMany({ email: normalizedEmail });
 
-    // Store new OTP
     await OTP.create({
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
       otp: otpCode,
       expiresAt,
     });
 
-    // Send OTP email
     await transporter.sendMail({
       from: `"Espionage | DBUG" <${process.env.SMTP_USER}>`,
-      to: email.trim(),
-      subject: `🔐 Your Access Code — Espionage`,
+      to: normalizedEmail,
+      subject: 'Dashboard Access Code | Espionage',
       html: `
 <!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"></head>
-<body style="font-family: 'Courier New', monospace; background: #0a0a0f; color: #e6edf3; margin: 0; padding: 0;">
-  <div style="max-width: 500px; margin: 0 auto; background: #0d1117; border: 1px solid rgba(0,255,65,0.2); border-radius: 12px; overflow: hidden;">
-    <div style="background: linear-gradient(135deg, #003311, #001a0a); padding: 32px 24px; text-align: center; border-bottom: 1px solid rgba(0,255,65,0.15);">
-      <h1 style="margin: 0; font-size: 28px; color: #00ff41; letter-spacing: 6px;">ESPIONAGE</h1>
-      <p style="margin: 8px 0 0; color: #7d8590; font-size: 12px; letter-spacing: 2px;">AGENT AUTHENTICATION</p>
+<body style="font-family: 'Inter', 'Space Grotesk', 'Courier New', monospace; background: #0E0E0E; color: #E5E2E1; margin: 0; padding: 0;">
+  <div style="max-width: 600px; margin: 0 auto; background: #131313; border: 1px solid rgba(255, 85, 64, 0.2); box-shadow: 0 0 30px rgba(255, 85, 64, 0.05); overflow: hidden;">
+    <div style="background: rgba(255, 85, 64, 0.05); padding: 40px 30px; text-align: center; border-bottom: 1px solid rgba(255, 85, 64, 0.2);">
+      <h1 style="margin: 0; font-size: 36px; color: #FF5540; letter-spacing: 0.2em; font-weight: 900;">ESPIONAGE</h1>
+      <p style="margin: 8px 0 0; color: #FFB4A8; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;">Dashboard Access Code</p>
     </div>
-    <div style="padding: 32px 24px; text-align: center;">
-      <p style="color: #7d8590; font-size: 14px; margin-bottom: 8px;">Agent <strong style="color: #e6edf3;">${participant.name}</strong>,</p>
-      <p style="color: #7d8590; font-size: 14px; margin-bottom: 24px;">Your one-time access code:</p>
-      <div style="background: rgba(0,255,65,0.05); border: 2px solid rgba(0,255,65,0.3); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-        <span style="font-size: 40px; font-weight: bold; color: #00ff41; letter-spacing: 12px;">${otpCode}</span>
+    <div style="padding: 40px 30px;">
+      <p style="color: #ABAAA9; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em;">Agent <strong style="color: #E5E2E1;">${participant.name}</strong>,</p>
+      <p style="color: #ABAAA9; font-size: 14px; margin-bottom: 24px; line-height: 1.6;">Use the one-time access code below to enter the event dashboard. This code is valid for a single login session and expires shortly.</p>
+
+      <div style="background: rgba(255, 85, 64, 0.05); border-top: 1px solid rgba(255, 85, 64, 0.2); border-bottom: 1px solid rgba(255, 85, 64, 0.2); padding: 24px; text-align: center; margin-bottom: 24px;">
+        <p style="font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #FF5540; margin-bottom: 8px; opacity: 0.8;">One-Time Access Code</p>
+        <div style="font-size: 40px; font-weight: 900; color: #FF5540; letter-spacing: 0.35em; text-shadow: 0 0 15px rgba(255, 85, 64, 0.4);">${otpCode}</div>
+        <p style="font-size: 12px; color: #ABAAA9; margin-top: 12px;">Agent ID: ${participant.participantId}</p>
       </div>
-      <p style="color: #484f58; font-size: 12px;">This code expires in <strong style="color: #ffb300;">5 minutes</strong>.</p>
-      <p style="color: #484f58; font-size: 12px;">Do not share this code with anyone.</p>
+
+      <div style="background: #1C1C1D; border-left: 3px solid #FF5540; padding: 20px; margin: 24px 0;">
+        <p style="margin: 0 0 8px 0; font-size: 13px; color: #E5E2E1;"><strong>DATE:</strong> ${eventDate}</p>
+        <p style="margin: 0 0 8px 0; font-size: 13px; color: #E5E2E1;"><strong>TIME:</strong> ${eventTime}</p>
+        <p style="margin: 0; font-size: 13px; color: #E5E2E1;"><strong>VENUE:</strong> ${eventVenue}</p>
+      </div>
+
+      <p style="color: #ABAAA9; font-size: 12px; text-align: center; line-height: 1.6; margin-top: 32px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 24px;">
+        This code expires in <strong style="color: #FF5540;">5 minutes</strong>. Do not share it with anyone.
+      </p>
     </div>
-    <div style="background: #161b22; padding: 16px 24px; text-align: center; border-top: 1px solid rgba(0,255,65,0.1);">
-      <p style="color: #484f58; font-size: 11px; margin: 0;">DBUG • Espionage 2026</p>
+    <div style="background: #0E0E0E; padding: 24px; text-align: center; border-top: 1px solid rgba(255, 85, 64, 0.2);">
+      <p style="color: #848383; font-size: 10px; margin: 0; letter-spacing: 0.2em; text-transform: uppercase;">CLASSIFIED DIRECTIVE // EYES ONLY</p>
     </div>
   </div>
 </body>
 </html>`,
-      text: `Your Espionage OTP is: ${otpCode}. It expires in 5 minutes.`,
+      text: `Agent ${participant.name}, your Espionage dashboard access code is ${otpCode}. It expires in 5 minutes. Event date: ${eventDate}, time: ${eventTime}, venue: ${eventVenue}. Do not share this code.`,
     });
 
     return NextResponse.json({ success: true, message: 'OTP sent to your email.' });

@@ -39,6 +39,32 @@ export interface IParticipant extends Document {
     verdict: string;
     submittedAt: Date;
   }[];
+  round2FinalSubmissions: {
+    questionId: string;
+    questionTitle: string;
+    code: string;
+    language: string;
+    verdict: string;
+    passed: number;
+    total: number;
+    testcaseScorePercent: number;
+    submittedAt: Date;
+  }[];
+  round2Evaluations: {
+    questionId: string;
+    questionTitle: string;
+    language: string;
+    verdict: string;
+    testcaseScorePercent: number;
+    aiScorePercent: number;
+    finalScorePercent: number;
+    rationale: string;
+    strengths: string[];
+    issues: string[];
+    evaluatedAt: Date;
+  }[];
+  round2AiScore: number | null;
+  round2FinalScore: number | null;
   createdAt: Date;
 }
 
@@ -88,6 +114,36 @@ const ParticipantSchema = new Schema<IParticipant>(
         submittedAt: { type: Date, default: Date.now },
       },
     ],
+    round2FinalSubmissions: [
+      {
+        questionId: { type: String },
+        questionTitle: { type: String },
+        code: { type: String },
+        language: { type: String },
+        verdict: { type: String },
+        passed: { type: Number, default: 0 },
+        total: { type: Number, default: 0 },
+        testcaseScorePercent: { type: Number, default: 0 },
+        submittedAt: { type: Date, default: Date.now },
+      },
+    ],
+    round2Evaluations: [
+      {
+        questionId: { type: String },
+        questionTitle: { type: String },
+        language: { type: String },
+        verdict: { type: String },
+        testcaseScorePercent: { type: Number, default: 0 },
+        aiScorePercent: { type: Number, default: 0 },
+        finalScorePercent: { type: Number, default: 0 },
+        rationale: { type: String, default: '' },
+        strengths: [{ type: String }],
+        issues: [{ type: String }],
+        evaluatedAt: { type: Date, default: Date.now },
+      },
+    ],
+    round2AiScore: { type: Number, default: null },
+    round2FinalScore: { type: Number, default: null },
   },
   { timestamps: true }
 );

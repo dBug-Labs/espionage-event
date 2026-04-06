@@ -5,6 +5,7 @@ import { getSession } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { getQuestionLanguageIds, getStarterCode, isShortcutBlocked } from '@/lib/round2';
+import { enterSecureFullscreen, exitSecureFullscreen, reenterSecureFullscreen, unlockSecureTestKeys } from '@/lib/testSecurity';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
 
@@ -63,8 +64,13 @@ export default function Round2Page() {
   const [warningMessage, setWarningMessage] = useState('');
   const [started, setStarted] = useState(false);
   const [disqualified, setDisqualified] = useState(false);
+  const [startError, setStartError] = useState('');
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [allowFullscreenExit, setAllowFullscreenExit] = useState(false);
   const warningsRef = useRef(0);
   const codeRef = useRef<Record<string, Record<string, string>>>({});
+  const allowFullscreenExitRef = useRef(false);
+  const warningTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -95,38 +101,62 @@ export default function Round2Page() {
     load();
   }, [session?.email]);
 
+  async function leaveSecureEnvironment(path: string) {
+    allowFullscreenExitRef.current = true;
+    setAllowFullscreenExit(true);
+    await exitSecureFullscreen();
+    router.push(path);
+  }
+
   const triggerWarning = useCallback((message: string) => {
     const nextWarnings = warningsRef.current + 1;
     warningsRef.current = nextWarnings;
     setWarnings(nextWarnings);
     setWarningMessage(`WARNING ${nextWarnings}/${MAX_WARNINGS}: ${message}`);
     setShowWarning(true);
-    setTimeout(() => setShowWarning(false), 3000);
+
+    if (warningTimeoutRef.current) {
+      window.clearTimeout(warningTimeoutRef.current);
+      warningTimeoutRef.current = null;
+    }
+
+    if (!message.toLowerCase().includes('fullscreen exited')) {
+      warningTimeoutRef.current = window.setTimeout(() => {
+        setShowWarning(false);
+        warningTimeoutRef.current = null;
+      }, 3000);
+    }
+
     if (nextWarnings >= MAX_WARNINGS) {
       setDisqualified(true);
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {});
-      }
     }
   }, []);
 
   useEffect(() => {
-    if (!started || disqualified) return;
+    return () => {
+      if (warningTimeoutRef.current) {
+        window.clearTimeout(warningTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!started || allowFullscreenExit) return;
 
     const handleVisibility = () => {
-      if (document.hidden) triggerWarning('Tab switch detected.');
+      if (document.hidden && !disqualified) triggerWarning('Tab switch detected.');
     };
     const handleFsChange = () => {
-      if (!document.fullscreenElement) {
-        triggerWarning('Fullscreen exited.');
-        document.documentElement.requestFullscreen().catch(() => {});
+      if (!document.fullscreenElement && !allowFullscreenExitRef.current) {
+        if (!disqualified) {
+          triggerWarning('Fullscreen exited.');
+        }
       }
     };
     const handleKeydown = (event: KeyboardEvent) => {
       if (isShortcutBlocked(event)) {
         event.preventDefault();
         event.stopPropagation();
-        triggerWarning(`Blocked shortcut: ${event.key}`);
       }
     };
     const prevent = (event: Event) => event.preventDefault();
@@ -146,15 +176,34 @@ export default function Round2Page() {
       document.removeEventListener('paste', prevent);
       document.removeEventListener('keydown', handleKeydown, true);
     };
-  }, [started, disqualified, triggerWarning]);
+  }, [allowFullscreenExit, disqualified, started, triggerWarning]);
+
+  useEffect(() => {
+    if (!started || allowFullscreenExit) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [allowFullscreenExit, started]);
+
+  useEffect(() => {
+    if (!allowFullscreenExit) return;
+    unlockSecureTestKeys();
+  }, [allowFullscreenExit]);
 
   async function handleStart() {
-    try {
-      await document.documentElement.requestFullscreen();
-      setStarted(true);
-    } catch {
-      alert('Fullscreen is required.');
+    const entered = await enterSecureFullscreen();
+    if (!entered) {
+      setStartError('Fullscreen permission was blocked. Allow fullscreen access to start Round 2.');
+      return;
     }
+
+    setStartError('');
+    setStarted(true);
   }
 
   function getAvailableLanguages(question: CodingQuestion): LanguageOption[] {
@@ -194,6 +243,49 @@ export default function Round2Page() {
     setCode(saved || getStarterCode(currentQuestion, nextLanguage));
   }
 
+  function handleEditorMount(editorInstance: {
+    onKeyDown: (callback: (event: {
+      ctrlKey: boolean;
+      metaKey: boolean;
+      altKey: boolean;
+      keyCode: number;
+      preventDefault: () => void;
+      stopPropagation: () => void;
+    }) => void) => void;
+    addCommand: (keybinding: number, handler: () => void) => void;
+  }, monaco: {
+    KeyMod: { CtrlCmd: number; Shift: number; Alt: number };
+    KeyCode: Record<string, number>;
+  }) {
+    const blockedKeybindings = [
+      monaco.KeyCode.F1,
+      monaco.KeyCode.F2,
+      monaco.KeyCode.F3,
+      monaco.KeyCode.F7,
+      monaco.KeyCode.F8,
+      monaco.KeyCode.F12,
+      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF,
+      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyH,
+      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyG,
+      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyP,
+      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD,
+      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL,
+      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK,
+      monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF,
+    ];
+
+    editorInstance.onKeyDown((event) => {
+      if (event.ctrlKey || event.metaKey || event.altKey || event.keyCode === monaco.KeyCode.F1 || event.keyCode === monaco.KeyCode.F12) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    });
+
+    blockedKeybindings.forEach((binding) => {
+      editorInstance.addCommand(binding, () => {});
+    });
+  }
+
   async function handleRun() {
     const question = questions[activeQ];
     if (!question) return;
@@ -225,10 +317,15 @@ export default function Round2Page() {
     }
   }
 
-  async function handleSubmit() {
+  function handleSubmit() {
+    setShowSubmitConfirm(true);
+  }
+
+  async function confirmSubmit() {
     const question = questions[activeQ];
     if (!question) return;
-    if (!confirm('Submit this solution? It will be judged on all hidden cases.')) return;
+
+    setShowSubmitConfirm(false);
 
     setSubmitting(true);
     setOutput(null);
@@ -248,6 +345,13 @@ export default function Round2Page() {
       setSubmitResult({ verdict: 'Error', passed: 0, total: 0, results: [] });
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleReenterFullscreen() {
+    await reenterSecureFullscreen();
+    if (document.fullscreenElement) {
+      setShowWarning(false);
     }
   }
 
@@ -325,6 +429,12 @@ export default function Round2Page() {
             </ul>
           </div>
 
+          {startError && (
+            <div className="mb-6 border border-error/30 bg-error/10 px-4 py-3 text-error font-headline text-[10px] tracking-widest uppercase">
+              {startError}
+            </div>
+          )}
+
           <button className="w-full py-5 bg-primary text-on-primary font-headline font-black text-lg tracking-[0.2em] uppercase transition-all hover:bg-primary-container active:scale-[0.98] shadow-[0_0_20px_rgba(255,85,64,0.3)] flex justify-center items-center gap-3 animate-pulse" onClick={handleStart}>
             <span className="material-symbols-outlined">fullscreen</span>
             ENTER TERMINAL
@@ -346,7 +456,7 @@ export default function Round2Page() {
           <p className="text-on-surface font-mono text-sm leading-relaxed mb-8">
             SECURITY BREACH DETECTED. THE WARNING LIMIT WAS EXCEEDED AFTER LEAVING THE SECURE FULLSCREEN ENVIRONMENT OR ATTEMPTING BLOCKED OPERATIONS.
           </p>
-          <button className="px-8 py-4 border border-outline-variant text-on-surface font-headline font-bold text-xs tracking-widest uppercase hover:text-error hover:border-error transition-all mx-auto flex items-center gap-2" onClick={() => router.push('/dashboard')}>
+          <button className="px-8 py-4 border border-outline-variant text-on-surface font-headline font-bold text-xs tracking-widest uppercase hover:text-error hover:border-error transition-all mx-auto flex items-center gap-2" onClick={() => leaveSecureEnvironment('/dashboard')}>
             <span className="material-symbols-outlined text-[16px]">arrow_back</span>
             RETURN TO BASE
           </button>
@@ -363,6 +473,39 @@ export default function Round2Page() {
             <span className="material-symbols-outlined text-error text-7xl mb-6">warning</span>
             <h2 className="font-headline text-3xl font-black text-error uppercase tracking-widest mb-4">SECURITY ALERT</h2>
             <p className="text-on-surface font-mono text-lg">{warningMessage}</p>
+            {!document.fullscreenElement && !allowFullscreenExit && (
+              <button
+                onClick={handleReenterFullscreen}
+                className="mt-6 px-6 py-3 bg-primary text-on-primary font-headline font-black text-xs tracking-widest uppercase"
+              >
+                RE-ENTER FULLSCREEN
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showSubmitConfirm && (
+        <div className="fixed inset-0 z-[9998] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="w-full max-w-md border border-primary/30 bg-surface-container-low p-6 text-center shadow-[0_0_30px_rgba(255,85,64,0.15)]">
+            <h2 className="font-headline text-xl font-black uppercase tracking-widest text-primary mb-3">Judge Submission</h2>
+            <p className="text-sm text-on-surface-variant leading-relaxed mb-6">
+              Submit this solution against all hidden test cases for the current mission?
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={confirmSubmit}
+                className="w-full px-6 py-3 bg-primary text-on-primary font-headline font-black text-xs tracking-widest uppercase"
+              >
+                SUBMIT SOLUTION
+              </button>
+              <button
+                onClick={() => setShowSubmitConfirm(false)}
+                className="w-full px-6 py-3 border border-outline-variant/40 text-on-surface font-headline font-bold text-xs tracking-widest uppercase"
+              >
+                KEEP EDITING
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -502,11 +645,13 @@ export default function Round2Page() {
             language={currentLanguage?.monaco || 'python'}
             value={code}
             onChange={(value) => setCode(value || '')}
+            onMount={handleEditorMount}
             theme="vs-dark"
             loading={<div className="font-mono text-xs text-secondary animate-pulse p-4">CONNECTING TO COMPILER...</div>}
             options={{
               fontSize: 14,
               fontFamily: "'JetBrains Mono', 'Courier New', monospace",
+              contextmenu: false,
               minimap: { enabled: false },
               padding: { top: 16 },
               scrollBeyondLastLine: false,
@@ -515,6 +660,16 @@ export default function Round2Page() {
               cursorBlinking: 'smooth',
               cursorSmoothCaretAnimation: 'on',
               renderLineHighlight: 'all',
+              quickSuggestions: false,
+              suggestOnTriggerCharacters: false,
+              acceptSuggestionOnEnter: 'off',
+              tabCompletion: 'off',
+              parameterHints: { enabled: false },
+              codeLens: false,
+              formatOnPaste: false,
+              formatOnType: false,
+              links: false,
+              inlineSuggest: { enabled: false },
             }}
           />
         </div>
