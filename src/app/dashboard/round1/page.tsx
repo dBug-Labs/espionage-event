@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { getSession } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import { isShortcutBlocked } from '@/lib/round2';
+import { enterSecureFullscreen, exitSecureFullscreen, reenterSecureFullscreen, unlockSecureTestKeys } from '@/lib/testSecurity';
 
 interface Question {
   _id: string;
@@ -30,7 +31,11 @@ export default function Round1Page() {
   const [showWarning, setShowWarning] = useState(false);
   const [warningMessage, setWarningMessage] = useState('');
   const [started, setStarted] = useState(false);
+  const [startError, setStartError] = useState('');
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [allowFullscreenExit, setAllowFullscreenExit] = useState(false);
   const warningsRef = useRef(0);
+  const warningTimeoutRef = useRef<number | null>(null);
 
   // Fetch questions
   useEffect(() => {
@@ -73,13 +78,10 @@ export default function Round1Page() {
       const data = await res.json();
       if (res.ok) {
         setResult({ score: data.score, correct: data.correct, total: data.total });
+        setAllowFullscreenExit(true);
       }
     } catch {
       // silent fail — already submitted
-    }
-    // Exit fullscreen
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
     }
   }, [submitted, answers, session?.email]);
 
@@ -88,14 +90,33 @@ export default function Round1Page() {
     const newCount = warningsRef.current + 1;
     warningsRef.current = newCount;
     setWarnings(newCount);
-    setWarningMessage(`⚠️ WARNING ${newCount}/${MAX_WARNINGS}: ${message}`);
+    setWarningMessage(`WARNING ${newCount}/${MAX_WARNINGS}: ${message}`);
     setShowWarning(true);
-    setTimeout(() => setShowWarning(false), 3000);
+
+    if (warningTimeoutRef.current) {
+      window.clearTimeout(warningTimeoutRef.current);
+      warningTimeoutRef.current = null;
+    }
+
+    if (!message.toLowerCase().includes('fullscreen exited')) {
+      warningTimeoutRef.current = window.setTimeout(() => {
+        setShowWarning(false);
+        warningTimeoutRef.current = null;
+      }, 3000);
+    }
 
     if (newCount >= MAX_WARNINGS) {
       autoSubmit();
     }
   }, [autoSubmit]);
+
+  useEffect(() => {
+    return () => {
+      if (warningTimeoutRef.current) {
+        window.clearTimeout(warningTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Anti-cheat: visibility change (tab switch)
   useEffect(() => {
@@ -111,19 +132,19 @@ export default function Round1Page() {
 
   // Anti-cheat: fullscreen change
   useEffect(() => {
-    if (!started || submitted) return;
+    if (!started || allowFullscreenExit) return;
     const handleFsChange = () => {
       const inFs = !!document.fullscreenElement;
       setIsFullscreen(inFs);
-      if (!inFs && started && !submitted) {
-        triggerWarning('Fullscreen exited! Return to fullscreen immediately.');
-        // Re-request fullscreen
-        document.documentElement.requestFullscreen().catch(() => {});
+      if (!inFs && started && !allowFullscreenExit) {
+        if (!submitted) {
+          triggerWarning('Fullscreen exited! Return to fullscreen immediately.');
+        }
       }
     };
     document.addEventListener('fullscreenchange', handleFsChange);
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
-  }, [started, submitted, triggerWarning]);
+  }, [allowFullscreenExit, started, submitted, triggerWarning]);
 
   // Anti-cheat: block copy/paste/right-click/shortcuts
   useEffect(() => {
@@ -133,7 +154,6 @@ export default function Round1Page() {
       if (isShortcutBlocked(e)) {
         e.preventDefault();
         e.stopPropagation();
-        triggerWarning('Shortcut keys are disabled during the test!');
       }
     };
     document.addEventListener('copy', prevent);
@@ -148,21 +168,51 @@ export default function Round1Page() {
     };
   }, [started, submitted, triggerWarning]);
 
+  useEffect(() => {
+    if (!started || allowFullscreenExit) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [allowFullscreenExit, started]);
+
+  useEffect(() => {
+    if (!allowFullscreenExit) return;
+    unlockSecureTestKeys();
+  }, [allowFullscreenExit]);
+
   // Enter fullscreen and start
   async function handleStart() {
-    try {
-      await document.documentElement.requestFullscreen();
-      setIsFullscreen(true);
-      setStarted(true);
-    } catch {
-      alert('Fullscreen is required to start the test. Please allow fullscreen access.');
+    const entered = await enterSecureFullscreen();
+    if (!entered) {
+      setStartError('Fullscreen permission was blocked. Allow fullscreen access to start the test.');
+      return;
     }
+
+    setStartError('');
+    setIsFullscreen(true);
+    setStarted(true);
   }
 
   // Manual submit
-  async function handleSubmit() {
-    if (!confirm('Are you sure you want to submit? This cannot be undone.')) return;
+  function handleSubmit() {
+    setShowSubmitConfirm(true);
+  }
+
+  async function confirmSubmit() {
+    setShowSubmitConfirm(false);
     await autoSubmit();
+  }
+
+  async function handleReenterFullscreen() {
+    await reenterSecureFullscreen();
+    if (document.fullscreenElement) {
+      setShowWarning(false);
+    }
   }
 
   // Common wrapper class
@@ -198,7 +248,7 @@ export default function Round1Page() {
             </div>
           )}
 
-          <button className="px-8 py-4 bg-surface-container-higher border border-outline-variant text-on-surface font-headline font-bold text-sm tracking-[0.2em] uppercase transition-all hover:border-primary hover:text-primary active:scale-[0.98] flex justify-center items-center gap-2 mx-auto" onClick={() => router.push('/dashboard')}>
+          <button className="px-8 py-4 bg-surface-container-higher border border-outline-variant text-on-surface font-headline font-bold text-sm tracking-[0.2em] uppercase transition-all hover:border-primary hover:text-primary active:scale-[0.98] flex justify-center items-center gap-2 mx-auto" onClick={async () => { await exitSecureFullscreen(); router.push('/dashboard'); }}>
             <span className="material-symbols-outlined text-lg">arrow_back</span>
             RETURN TO DASHBOARD
           </button>
@@ -277,6 +327,12 @@ export default function Round1Page() {
             </ul>
           </div>
 
+          {startError && (
+            <div className="mb-6 border border-error/30 bg-error/10 px-4 py-3 text-error font-headline text-[10px] tracking-widest uppercase">
+              {startError}
+            </div>
+          )}
+
           <button className="w-full py-5 bg-primary text-on-primary font-headline font-black text-lg tracking-[0.2em] uppercase transition-all hover:bg-primary-container active:scale-[0.98] shadow-[0_0_20px_rgba(255,85,64,0.3)] flex justify-center items-center gap-3 animate-pulse" onClick={handleStart}>
             <span className="material-symbols-outlined">fullscreen</span>
             ENTER FULLSCREEN & START
@@ -299,6 +355,39 @@ export default function Round1Page() {
             <span className="material-symbols-outlined text-error text-7xl mb-6">warning</span>
             <h2 className="font-headline text-3xl font-black text-error uppercase tracking-widest mb-4">SECURITY ALERT</h2>
             <p className="text-on-surface font-mono text-lg">{warningMessage}</p>
+            {!isFullscreen && !submitted && (
+              <button
+                onClick={handleReenterFullscreen}
+                className="mt-6 px-6 py-3 bg-primary text-on-primary font-headline font-black text-xs tracking-widest uppercase"
+              >
+                RE-ENTER FULLSCREEN
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showSubmitConfirm && (
+        <div className="fixed inset-0 z-[9998] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="w-full max-w-md border border-primary/30 bg-surface-container-low p-6 text-center shadow-[0_0_30px_rgba(255,85,64,0.15)]">
+            <h2 className="font-headline text-xl font-black uppercase tracking-widest text-primary mb-3">Confirm Submission</h2>
+            <p className="text-sm text-on-surface-variant leading-relaxed mb-6">
+              Submit your Round 1 answers now? This cannot be undone.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={confirmSubmit}
+                className="w-full px-6 py-3 bg-primary text-on-primary font-headline font-black text-xs tracking-widest uppercase"
+              >
+                SUBMIT NOW
+              </button>
+              <button
+                onClick={() => setShowSubmitConfirm(false)}
+                className="w-full px-6 py-3 border border-outline-variant/40 text-on-surface font-headline font-bold text-xs tracking-widest uppercase"
+              >
+                GO BACK
+              </button>
+            </div>
           </div>
         </div>
       )}

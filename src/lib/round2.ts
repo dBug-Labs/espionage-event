@@ -1,6 +1,11 @@
 import type { PistonRuntime } from './piston';
 
 export const ROUND2_QUESTION_COUNT = 5;
+export const ROUND2_DIFFICULTY_MIX = {
+  easy: 1,
+  medium: 2,
+  hard: 2,
+} as const;
 
 export const ROUND2_LANGUAGE_CONFIG = {
   c: {
@@ -38,6 +43,7 @@ export type ResolvedPistonRuntime = {
 };
 
 const USER_CODE_PLACEHOLDER = '__USER_CODE__';
+type Round2Difficulty = keyof typeof ROUND2_DIFFICULTY_MIX;
 
 type LanguageEntry = { language: string; code: string };
 
@@ -125,24 +131,72 @@ function seededScore(seed: string, key: string): number {
   return hashString(`${seed}::${key}`);
 }
 
-export function pickRound2Questions<T extends { _id: string; order: number }>(
+function pickSeededQuestions<T extends { _id: string; order: number }>(
+  questions: T[],
+  seed: string,
+  scope: string,
+  count: number
+): T[] {
+  return [...questions]
+    .sort((a, b) => seededScore(seed, `${scope}:${a._id}`) - seededScore(seed, `${scope}:${b._id}`))
+    .slice(0, count);
+}
+
+export function sortQuestionsByAssignedIds<T extends { _id: string }>(questions: T[], assignedIds: string[]): T[] {
+  const orderMap = new Map(assignedIds.map((id, index) => [id, index]));
+  return [...questions].sort((a, b) => (orderMap.get(a._id) ?? Number.MAX_SAFE_INTEGER) - (orderMap.get(b._id) ?? Number.MAX_SAFE_INTEGER));
+}
+
+export function pickRound2Questions<T extends { _id: string; order: number; difficulty?: string }>(
   questions: T[],
   seed: string,
   count = ROUND2_QUESTION_COUNT
 ): T[] {
-  return [...questions]
-    .sort((a, b) => seededScore(seed, a._id) - seededScore(seed, b._id))
-    .slice(0, count)
-    .sort((a, b) => a.order - b.order);
+  const selected: T[] = [];
+  const selectedIds = new Set<string>();
+
+  for (const [difficulty, amount] of Object.entries(ROUND2_DIFFICULTY_MIX) as [Round2Difficulty, number][]) {
+    const picked = pickSeededQuestions(
+      questions.filter((question) => question.difficulty === difficulty),
+      seed,
+      difficulty,
+      amount
+    );
+
+    for (const question of picked) {
+      if (selectedIds.has(question._id)) continue;
+      selected.push(question);
+      selectedIds.add(question._id);
+    }
+  }
+
+  if (selected.length < count) {
+    const fallback = pickSeededQuestions(
+      questions.filter((question) => !selectedIds.has(question._id)),
+      seed,
+      'fallback',
+      count - selected.length
+    );
+
+    for (const question of fallback) {
+      if (selectedIds.has(question._id)) continue;
+      selected.push(question);
+      selectedIds.add(question._id);
+    }
+  }
+
+  return selected.sort((a, b) => a.order - b.order);
 }
 
 export function isShortcutBlocked(event: KeyboardEvent): boolean {
   const key = event.key.toLowerCase();
   const ctrlOrMeta = event.ctrlKey || event.metaKey;
 
-  if (key === 'f11' || key === 'f12') return true;
+  if (key === 'escape') return true;
+  if (/^f\d{1,2}$/.test(key)) return true;
   if (event.altKey && key === 'tab') return true;
+  if (event.altKey && ['arrowleft', 'arrowright', 'f4'].includes(key)) return true;
   if (!ctrlOrMeta) return false;
 
-  return ['r', 'w', 't', 'n', 's', 'p', 'u', 'i', 'j', 'c', 'k', 'l'].includes(key);
+  return true;
 }

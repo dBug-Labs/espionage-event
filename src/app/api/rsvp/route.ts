@@ -5,6 +5,35 @@ import Participant from '@/models/Participant';
 const MAX_TEAMS = 50;
 const MAX_MEMBERS = 100;
 
+function serializeParticipant(participant: {
+  participantId: string;
+  name: string;
+  teamType: 'solo' | 'duo';
+  partner?: { name?: string };
+}) {
+  return {
+    participantId: participant.participantId,
+    name: participant.name,
+    teamType: participant.teamType,
+    partnerName: participant.partner?.name,
+  };
+}
+
+async function getParticipantByToken(token: string) {
+  await connectToDatabase();
+  return Participant.findOne({ rsvpToken: token });
+}
+
+async function getConfirmedCounts() {
+  const confirmedParticipants = await Participant.find({ rsvpStatus: 'CONFIRMED' }, 'teamType').lean();
+  const confirmedTeams = confirmedParticipants.length;
+  const confirmedMembers = confirmedParticipants.reduce((sum, participant) => {
+    return sum + (participant.teamType === 'duo' ? 2 : 1);
+  }, 0);
+
+  return { confirmedTeams, confirmedMembers };
+}
+
 export async function GET(req: NextRequest) {
   try {
     const token = req.nextUrl.searchParams.get('token');
@@ -12,66 +41,103 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Missing RSVP token.' }, { status: 400 });
     }
 
-    await connectToDatabase();
-
-    // Find participant by token
-    const participant = await Participant.findOne({ rsvpToken: token });
+    const participant = await getParticipantByToken(token);
     if (!participant) {
       return NextResponse.json({ error: 'Invalid or expired RSVP token.' }, { status: 404 });
     }
 
-    // Already confirmed
     if (participant.rsvpStatus === 'CONFIRMED') {
       return NextResponse.json({
         success: true,
         alreadyConfirmed: true,
         message: 'You have already confirmed your RSVP!',
-        participantId: participant.participantId,
-        name: participant.name,
+        ...serializeParticipant(participant),
       });
     }
 
-    // Check caps
-    const confirmedTeams = await Participant.countDocuments({ rsvpStatus: 'CONFIRMED' });
-    
-    // Count total members (solo = 1, duo = 2)
-    const confirmedParticipants = await Participant.find({ rsvpStatus: 'CONFIRMED' }).lean();
-    const confirmedMembers = confirmedParticipants.reduce((sum, p) => {
-      return sum + (p.teamType === 'duo' ? 2 : 1);
-    }, 0);
+    return NextResponse.json({
+      success: true,
+      requiresConfirmation: true,
+      message: 'Review your team details and confirm your RSVP to lock your slot.',
+      ...serializeParticipant(participant),
+    });
+  } catch (err) {
+    console.error('[rsvp][get]', err);
+    return NextResponse.json({ error: 'Failed to load RSVP details.' }, { status: 500 });
+  }
+}
 
-    // Calculate what this team would add
+export async function POST(req: NextRequest) {
+  try {
+    const { token } = await req.json();
+    if (!token || typeof token !== 'string') {
+      return NextResponse.json({ error: 'Missing RSVP token.' }, { status: 400 });
+    }
+
+    const participant = await getParticipantByToken(token);
+    if (!participant) {
+      return NextResponse.json({ error: 'Invalid or expired RSVP token.' }, { status: 404 });
+    }
+
+    if (participant.rsvpStatus === 'CONFIRMED') {
+      return NextResponse.json({
+        success: true,
+        alreadyConfirmed: true,
+        message: 'You have already confirmed your RSVP!',
+        ...serializeParticipant(participant),
+      });
+    }
+
+    const { confirmedTeams, confirmedMembers } = await getConfirmedCounts();
     const newMembers = participant.teamType === 'duo' ? 2 : 1;
 
     if (confirmedTeams >= MAX_TEAMS) {
-      return NextResponse.json({
-        error: 'RSVP is full! The maximum number of teams has been reached.',
-        capReached: true,
-      }, { status: 403 });
+      return NextResponse.json(
+        {
+          error: 'RSVP is full! The maximum number of teams has been reached.',
+          capReached: true,
+        },
+        { status: 403 }
+      );
     }
 
     if (confirmedMembers + newMembers > MAX_MEMBERS) {
-      return NextResponse.json({
-        error: 'RSVP is full! The maximum number of members has been reached.',
-        capReached: true,
-      }, { status: 403 });
+      return NextResponse.json(
+        {
+          error: 'RSVP is full! The maximum number of members has been reached.',
+          capReached: true,
+        },
+        { status: 403 }
+      );
     }
 
-    // Confirm RSVP
-    participant.rsvpStatus = 'CONFIRMED';
-    participant.rsvpAt = new Date();
-    await participant.save();
+    const confirmedParticipant = await Participant.findOneAndUpdate(
+      { _id: participant._id, rsvpStatus: 'PENDING' },
+      { $set: { rsvpStatus: 'CONFIRMED', rsvpAt: new Date() } },
+      { new: true }
+    );
+
+    if (!confirmedParticipant) {
+      const latestParticipant = await Participant.findById(participant._id);
+      if (latestParticipant?.rsvpStatus === 'CONFIRMED') {
+        return NextResponse.json({
+          success: true,
+          alreadyConfirmed: true,
+          message: 'You have already confirmed your RSVP!',
+          ...serializeParticipant(latestParticipant),
+        });
+      }
+
+      return NextResponse.json({ error: 'RSVP could not be confirmed. Please try again.' }, { status: 409 });
+    }
 
     return NextResponse.json({
       success: true,
       message: 'Your RSVP has been confirmed! You will receive your attendance pass soon.',
-      participantId: participant.participantId,
-      name: participant.name,
-      teamType: participant.teamType,
-      partnerName: participant.partner?.name,
+      ...serializeParticipant(confirmedParticipant),
     });
   } catch (err) {
-    console.error('[rsvp]', err);
+    console.error('[rsvp][post]', err);
     return NextResponse.json({ error: 'Failed to process RSVP.' }, { status: 500 });
   }
 }

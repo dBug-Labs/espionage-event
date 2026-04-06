@@ -130,7 +130,7 @@ export async function sendRSVPEmail(data: RSVPEmailData) {
     </div>
     <div style="padding: 40px 30px;">
       <p style="color: #ABAAA9; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em;">Agent <strong style="color: #E5E2E1;">${data.name}</strong>,</p>
-      <p style="color: #ABAAA9; font-size: 14px; margin-bottom: 24px; line-height: 1.6;">The mission is <strong style="color: #FF5540;">TOMORROW</strong>! We need you to confirm your attendance so we can finalize the roster. Seats are limited — first come, first served.</p>
+      <p style="color: #ABAAA9; font-size: 14px; margin-bottom: 24px; line-height: 1.6;">Your team has cleared the registration stage. Please review the RSVP page and confirm your attendance to lock your slot for the event. Seats are limited and confirmations are accepted on a first-confirmed basis.</p>
 
       <div style="background: rgba(255, 85, 64, 0.05); border: 1px solid rgba(255, 85, 64, 0.2); padding: 24px; text-align: center; margin-bottom: 24px;">
         <p style="font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #FF5540; margin-bottom: 8px;">Team: ${data.participantId}</p>
@@ -163,7 +163,7 @@ export async function sendRSVPEmail(data: RSVPEmailData) {
     to: data.email,
     subject: `🎯 RSVP Required — Confirm Your Attendance | Espionage`,
     html: htmlBody,
-    text: `Agent ${data.name}, the mission is tomorrow! Confirm your RSVP: ${rsvpLink}. Limited to 50 teams / 100 members.`,
+    text: `Agent ${data.name}, review and confirm your RSVP here: ${rsvpLink}. Event date: ${eventDate}, time: ${eventTime}, venue: ${eventVenue}. Limited to 50 teams / 100 members.`,
   });
 }
 

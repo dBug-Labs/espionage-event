@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
 import CodingQuestion from '@/models/CodingQuestion';
+import Participant from '@/models/Participant';
+import { getConfig } from '@/models/EventConfig';
 import { PistonServiceError, executePistonSubmission, getPistonRuntimes } from '@/lib/piston';
-import { buildSubmissionSource, pickRound2Questions, resolvePistonRuntime } from '@/lib/round2';
+import { buildSubmissionSource, pickRound2Questions, resolvePistonRuntime, ROUND2_QUESTION_COUNT } from '@/lib/round2';
 
 // Run against sample test cases only - no scoring
 export async function POST(req: NextRequest) {
@@ -14,18 +16,36 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
 
-    const question = await CodingQuestion.findById(questionId);
-    if (!question) return NextResponse.json({ error: 'Question not found.' }, { status: 404 });
-    const visibleQuestions = await CodingQuestion.find({}, '_id order').sort({ order: 1 }).lean();
-    const assignedIds = new Set(
-      pickRound2Questions(
-        visibleQuestions.map((item) => ({ _id: item._id.toString(), order: item.order })),
-        email.toLowerCase()
-      ).map((item) => item._id)
-    );
-    if (!assignedIds.has(questionId)) {
+    const config = await getConfig();
+    if (!config.round2Active) {
+      return NextResponse.json({ error: 'Round 2 not active.' }, { status: 403 });
+    }
+
+    const participant = await Participant.findOne({ email: email.toLowerCase() });
+    if (!participant) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
+    if (!participant.isShortlisted) return NextResponse.json({ error: 'Not shortlisted.' }, { status: 403 });
+
+    const visibleQuestions = await CodingQuestion.find({}, '_id order difficulty').sort({ order: 1 }).lean();
+    const normalizedQuestions = visibleQuestions.map((item) => ({
+      _id: item._id.toString(),
+      order: item.order,
+      difficulty: item.difficulty,
+    }));
+
+    let assignedIds = participant.round2QuestionIds ?? [];
+    const assignedQuestionCount = normalizedQuestions.filter((item) => assignedIds.includes(item._id)).length;
+    if (assignedIds.length !== ROUND2_QUESTION_COUNT || assignedQuestionCount !== assignedIds.length) {
+      assignedIds = pickRound2Questions(normalizedQuestions, email.toLowerCase()).map((item) => item._id);
+      participant.round2QuestionIds = assignedIds;
+      await participant.save();
+    }
+
+    if (!assignedIds.includes(questionId)) {
       return NextResponse.json({ error: 'Question not assigned to this login.' }, { status: 403 });
     }
+
+    const question = await CodingQuestion.findById(questionId);
+    if (!question) return NextResponse.json({ error: 'Question not found.' }, { status: 404 });
 
     const runtime = resolvePistonRuntime(await getPistonRuntimes(), language);
     if (!runtime) return NextResponse.json({ error: 'Unsupported language.' }, { status: 400 });

@@ -4,6 +4,16 @@ import Participant from '@/models/Participant';
 import { sendRSVPEmail } from '@/lib/mailer';
 import crypto from 'crypto';
 
+const RSVP_SEND_BATCH_SIZE = 12;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const batches: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    batches.push(items.slice(index, index + size));
+  }
+  return batches;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { password } = await req.json();
@@ -15,11 +25,12 @@ export async function POST(req: NextRequest) {
 
     // Find all participants without an RSVP token
     const participants = await Participant.find({
+      rsvpStatus: 'PENDING',
       $or: [
         { rsvpToken: '' },
         { rsvpToken: { $exists: false } },
-      ]
-    });
+      ],
+    }).lean();
 
     if (participants.length === 0) {
       return NextResponse.json({
@@ -30,33 +41,59 @@ export async function POST(req: NextRequest) {
     }
 
     let sentCount = 0;
-    for (const p of participants) {
-      // Generate unique RSVP token
-      const token = crypto.randomBytes(24).toString('hex');
-      p.rsvpToken = token;
-      await p.save();
+    const failedRecipients: string[] = [];
 
-      // Send RSVP email to team leader only
-      try {
-        await sendRSVPEmail({
-          participantId: p.participantId,
-          name: p.name,
-          email: p.email,
-          rsvpToken: token,
-          teamType: p.teamType,
-          partnerName: p.partner?.name,
-        });
-        sentCount++;
-      } catch (err) {
-        console.error(`[send-rsvp] Failed to email ${p.email}:`, err);
+    for (const batch of chunk(participants, RSVP_SEND_BATCH_SIZE)) {
+      const results = await Promise.all(
+        batch.map(async (participant) => {
+          const token = crypto.randomBytes(24).toString('hex');
+
+          try {
+            await sendRSVPEmail({
+              participantId: participant.participantId,
+              name: participant.name,
+              email: participant.email,
+              rsvpToken: token,
+              teamType: participant.teamType,
+              partnerName: participant.partner?.name,
+            });
+
+            return { ok: true, participant, token };
+          } catch (err) {
+            console.error(`[send-rsvp] Failed to email ${participant.email}:`, err);
+            return { ok: false, participant, token };
+          }
+        })
+      );
+
+      const successful = results.filter((result) => result.ok);
+      if (successful.length > 0) {
+        await Participant.bulkWrite(
+          successful.map((result) => ({
+            updateOne: {
+              filter: { _id: result.participant._id },
+              update: { $set: { rsvpToken: result.token } },
+            },
+          }))
+        );
       }
+
+      sentCount += successful.length;
+      failedRecipients.push(
+        ...results.filter((result) => !result.ok).map((result) => result.participant.email)
+      );
     }
 
     return NextResponse.json({
       success: true,
       sent: sentCount,
+      failed: failedRecipients.length,
       total: participants.length,
-      message: `RSVP emails sent to ${sentCount} team leaders.`,
+      failedRecipients: failedRecipients.slice(0, 20),
+      message:
+        failedRecipients.length > 0
+          ? `RSVP emails sent to ${sentCount} team leaders. ${failedRecipients.length} failed and can be retried safely.`
+          : `RSVP emails sent to ${sentCount} team leaders.`,
     });
   } catch (err) {
     console.error('[admin/send-rsvp]', err);
