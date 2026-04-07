@@ -19,7 +19,13 @@ export async function lockSecureTestKeys(): Promise<void> {
   }
 
   try {
-    await getKeyboardNavigator()?.keyboard?.lock?.(['Escape', 'F11']);
+    await getKeyboardNavigator()?.keyboard?.lock?.([
+      'Escape',
+      'MetaLeft', 'MetaRight',
+      'AltLeft', 'AltRight',
+      'F1', 'F2', 'F3', 'F4', 'F5', 'F6',
+      'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
+    ]);
   } catch {
     // Ignore unsupported browsers and keep the fallback fullscreen guard active.
   }

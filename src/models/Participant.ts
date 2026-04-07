@@ -35,11 +35,13 @@ export interface IParticipant extends Document {
   round1Score: number | null;
   round1SubmittedAt: Date | null;
   round1Warnings: number;
+  round1KeyViolations: number;
   round1QuestionIds: string[];
   isShortlisted: boolean;
   round2Score: number | null;
   round2QuestionIds: string[];
   round2Warnings: number;
+  round2KeyViolations: number;
   round2Submissions: {
     questionId: string;
     code: string;
@@ -47,6 +49,7 @@ export interface IParticipant extends Document {
     verdict: string;
     submittedAt: Date;
   }[];
+  round2SubmittedAt: Date | null;
   round2FinalSubmissions: {
     questionId: string;
     questionTitle: string;
@@ -116,11 +119,13 @@ const ParticipantSchema = new Schema<IParticipant>(
     round1Score: { type: Number, default: null },
     round1SubmittedAt: { type: Date, default: null },
     round1Warnings: { type: Number, default: 0 },
+    round1KeyViolations: { type: Number, default: 0 },
     round1QuestionIds: [{ type: String }],
     isShortlisted: { type: Boolean, default: false },
     round2Score: { type: Number, default: null },
     round2QuestionIds: [{ type: String }],
     round2Warnings: { type: Number, default: 0 },
+    round2KeyViolations: { type: Number, default: 0 },
     round2Submissions: [
       {
         questionId: { type: String },
@@ -143,6 +148,7 @@ const ParticipantSchema = new Schema<IParticipant>(
         submittedAt: { type: Date, default: Date.now },
       },
     ],
+    round2SubmittedAt: { type: Date, default: null },
     round2Evaluations: [
       {
         questionId: { type: String },

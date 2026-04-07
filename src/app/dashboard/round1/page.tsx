@@ -14,7 +14,8 @@ interface Question {
   points: number;
 }
 
-const MAX_WARNINGS = 3;
+const MAX_WARNINGS = 4;
+const MAX_KEY_VIOLATIONS = 6;
 
 export default function Round1Page() {
   const router = useRouter();
@@ -27,15 +28,21 @@ export default function Round1Page() {
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<{ score: number; correct: number; total: number } | null>(null);
   const [warnings, setWarnings] = useState(0);
+  const [keyViolations, setKeyViolations] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const [warningMessage, setWarningMessage] = useState('');
+  const [showKeyWarning, setShowKeyWarning] = useState(false);
+  const [keyWarningMessage, setKeyWarningMessage] = useState('');
   const [started, setStarted] = useState(false);
   const [startError, setStartError] = useState('');
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(45 * 60); // 45 minutes
   const [allowFullscreenExit, setAllowFullscreenExit] = useState(false);
   const warningsRef = useRef(0);
+  const keyViolationsRef = useRef(0);
   const warningTimeoutRef = useRef<number | null>(null);
+  const keyWarningTimeoutRef = useRef<number | null>(null);
 
   // Fetch questions
   useEffect(() => {
@@ -73,6 +80,7 @@ export default function Round1Page() {
           email: session?.email,
           answers: answerArray,
           warnings: warningsRef.current,
+          keyViolations: keyViolationsRef.current,
         }),
       });
       const data = await res.json();
@@ -85,7 +93,7 @@ export default function Round1Page() {
     }
   }, [submitted, answers, session?.email]);
 
-  // Trigger warning
+  // Trigger warning (fullscreen/tab switch)
   const triggerWarning = useCallback((message: string) => {
     const newCount = warningsRef.current + 1;
     warningsRef.current = newCount;
@@ -110,13 +118,55 @@ export default function Round1Page() {
     }
   }, [autoSubmit]);
 
+  // Trigger key violation (blocked key press)
+  const triggerKeyViolation = useCallback((key: string) => {
+    const newCount = keyViolationsRef.current + 1;
+    keyViolationsRef.current = newCount;
+    setKeyViolations(newCount);
+    setKeyWarningMessage(`KEY VIOLATION ${newCount}/${MAX_KEY_VIOLATIONS}: Blocked key "${key.toUpperCase()}" detected!`);
+    setShowKeyWarning(true);
+
+    if (keyWarningTimeoutRef.current) {
+      window.clearTimeout(keyWarningTimeoutRef.current);
+      keyWarningTimeoutRef.current = null;
+    }
+
+    keyWarningTimeoutRef.current = window.setTimeout(() => {
+      setShowKeyWarning(false);
+      keyWarningTimeoutRef.current = null;
+    }, 2500);
+
+    if (newCount >= MAX_KEY_VIOLATIONS) {
+      autoSubmit();
+    }
+  }, [autoSubmit]);
+
   useEffect(() => {
     return () => {
       if (warningTimeoutRef.current) {
         window.clearTimeout(warningTimeoutRef.current);
       }
+      if (keyWarningTimeoutRef.current) {
+        window.clearTimeout(keyWarningTimeoutRef.current);
+      }
     };
   }, []);
+
+  // Timer interval
+  useEffect(() => {
+    if (!started || submitted) return;
+    const timerId = window.setInterval(() => {
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(timerId);
+  }, [started, submitted]);
+
+  // Auto-submit when time is up
+  useEffect(() => {
+    if (timeLeft === 0 && !submitted) {
+      autoSubmit();
+    }
+  }, [timeLeft, submitted, autoSubmit]);
 
   // Anti-cheat: visibility change (tab switch)
   useEffect(() => {
@@ -146,7 +196,7 @@ export default function Round1Page() {
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
   }, [allowFullscreenExit, started, submitted, triggerWarning]);
 
-  // Anti-cheat: block copy/paste/right-click/shortcuts
+  // Anti-cheat: block copy/paste/right-click/shortcuts + key violations
   useEffect(() => {
     if (!started || submitted) return;
     const prevent = (e: Event) => e.preventDefault();
@@ -154,6 +204,7 @@ export default function Round1Page() {
       if (isShortcutBlocked(e)) {
         e.preventDefault();
         e.stopPropagation();
+        triggerKeyViolation(e.key);
       }
     };
     document.addEventListener('copy', prevent);
@@ -166,7 +217,7 @@ export default function Round1Page() {
       document.removeEventListener('contextmenu', prevent);
       document.removeEventListener('keydown', handleKeydown, true);
     };
-  }, [started, submitted, triggerWarning]);
+  }, [started, submitted, triggerKeyViolation]);
 
   useEffect(() => {
     if (!started || allowFullscreenExit) return;
@@ -215,6 +266,12 @@ export default function Round1Page() {
     }
   }
 
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
   // Common wrapper class
   const wrapperClass = "bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-hidden terminal-bg relative min-h-screen";
 
@@ -229,7 +286,7 @@ export default function Round1Page() {
             INTEL TEST <span className="text-primary glow-red">COMPLETE</span>
           </h1>
           <div className="h-px w-3/4 mx-auto bg-gradient-to-r from-transparent via-primary/50 to-transparent mt-6 mb-10"></div>
-          
+
           <div className="border border-primary/20 bg-primary/5 p-8 text-center mb-8 relative overflow-hidden group">
             <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             <p className="font-headline text-[10px] tracking-[0.2em] uppercase text-primary mb-2 opacity-80">Final Score Assessment</p>
@@ -242,9 +299,16 @@ export default function Round1Page() {
           </div>
 
           {warnings > 0 && (
-            <div className="bg-error/10 border border-error/30 text-error p-4 mb-8 font-headline text-xs tracking-widest uppercase flex items-center justify-center gap-2">
+            <div className="bg-error/10 border border-error/30 text-error p-4 mb-4 font-headline text-xs tracking-widest uppercase flex items-center justify-center gap-2">
               <span className="material-symbols-outlined text-sm">warning</span>
               {warnings} Security Warning{warnings > 1 ? 's' : ''} Received
+            </div>
+          )}
+
+          {keyViolations > 0 && (
+            <div className="bg-orange-500/10 border border-orange-500/30 text-orange-500 p-4 mb-8 font-headline text-xs tracking-widest uppercase flex items-center justify-center gap-2">
+              <span className="material-symbols-outlined text-sm">keyboard</span>
+              {keyViolations} Key Violation{keyViolations > 1 ? 's' : ''} Recorded
             </div>
           )}
 
@@ -292,15 +356,15 @@ export default function Round1Page() {
           <div className="absolute top-0 right-0 p-4 font-headline text-[10px] text-outline-variant uppercase tracking-widest">
             Ref: R1-PROTOCOL
           </div>
-          
+
           <span className="material-symbols-outlined text-primary text-5xl mb-6">psychology</span>
           <h1 className="font-headline text-3xl md:text-5xl font-black uppercase tracking-tighter text-on-surface mb-2">
             ROUND 1: BUG BREACH
           </h1>
           <p className="text-secondary font-headline text-xs tracking-[0.2em] uppercase mb-8">
-            {questions.length} questions • One-time submission • No going back
+            {questions.length} questions • 45 Minutes • One-time submission • No going back
           </p>
-          
+
           <div className="bg-surface-container-highest border border-error/30 p-6 mb-10 text-left relative overflow-hidden">
             <div className="absolute top-0 left-0 w-1 h-full bg-error"></div>
             <h3 className="font-headline text-xs text-error font-bold tracking-[0.2em] uppercase mb-4 flex items-center gap-2">
@@ -318,7 +382,11 @@ export default function Round1Page() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="material-symbols-outlined text-[16px] text-error mt-0.5">warning</span>
-                <span>You get <strong className="text-error font-bold">3 warnings max</strong> before automatic submission.</span>
+                <span>You get <strong className="text-error font-bold">3 warnings max</strong> for fullscreen/tab violations before automatic submission.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="material-symbols-outlined text-[16px] text-orange-500 mt-0.5">keyboard</span>
+                <span>Windows, Alt, and function keys are <strong className="text-orange-500 font-bold">blocked</strong>. <strong className="text-orange-500 font-bold">6 key violations</strong> = auto-submit.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="material-symbols-outlined text-[16px] text-primary mt-0.5">done_all</span>
@@ -348,7 +416,7 @@ export default function Round1Page() {
 
   return (
     <div className={wrapperClass + " pt-8 pb-32 px-4 md:px-8 select-none"}>
-      {/* Warning overlay */}
+      {/* Fullscreen warning overlay */}
       {showWarning && (
         <div className="fixed inset-0 bg-error/90 z-[9999] flex items-center justify-center animate-[pulse_0.5s_ease-in-out_infinite] backdrop-blur-sm">
           <div className="bg-[#111] border-2 border-error p-10 max-w-xl w-full text-center shadow-[0_0_100px_rgba(255,0,0,0.5)]">
@@ -363,6 +431,18 @@ export default function Round1Page() {
                 RE-ENTER FULLSCREEN
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Key violation warning overlay */}
+      {showKeyWarning && !showWarning && (
+        <div className="fixed top-0 left-0 right-0 z-[9998] flex justify-center p-4 animate-[slideDown_0.3s_ease-out]">
+          <div className="bg-[#1a1200] border-2 border-orange-500 px-8 py-4 max-w-xl w-full text-center shadow-[0_0_40px_rgba(255,165,0,0.3)]">
+            <div className="flex items-center justify-center gap-3">
+              <span className="material-symbols-outlined text-orange-500 text-2xl">keyboard</span>
+              <p className="text-orange-400 font-mono text-sm font-bold">{keyWarningMessage}</p>
+            </div>
           </div>
         </div>
       )}
@@ -403,12 +483,19 @@ export default function Round1Page() {
               Q {currentQ + 1} / {questions.length}
             </span>
           </div>
-          
-          <div className="flex items-center gap-6">
+
+          <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-error text-sm">warning</span>
               <span className="font-headline text-[10px] tracking-widest uppercase text-error">
                 Warnings: {warnings}/{MAX_WARNINGS}
+              </span>
+            </div>
+            <div className="h-4 w-px bg-outline-variant/30 hidden md:block"></div>
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-orange-500 text-sm">keyboard</span>
+              <span className="font-headline text-[10px] tracking-widest uppercase text-orange-500">
+                Key Violations: {keyViolations}/{MAX_KEY_VIOLATIONS}
               </span>
             </div>
             <div className="h-4 w-px bg-outline-variant/30 hidden md:block"></div>
@@ -418,13 +505,26 @@ export default function Round1Page() {
                 Progress: {progress}/{questions.length}
               </span>
             </div>
+            <div className="h-4 w-px bg-outline-variant/30 hidden md:block"></div>
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-sm">timer</span>
+              <span className="font-headline text-[10px] tracking-widest uppercase text-primary font-bold">
+                {formatTime(timeLeft)}
+              </span>
+            </div>
+            <button
+              onClick={handleSubmit}
+              className="px-4 py-1.5 bg-error/10 border border-error/50 text-error font-headline font-bold text-[10px] tracking-widest uppercase hover:bg-error hover:text-on-error transition-all ml-2"
+            >
+              FINISH TEST
+            </button>
           </div>
         </div>
 
         {/* Progress bar */}
         <div className="w-full h-1 bg-surface-container-highest mb-10 overflow-hidden">
-          <div 
-            className="h-full bg-primary transition-all duration-300 ease-out shadow-[0_0_10px_rgba(255,85,64,0.5)]" 
+          <div
+            className="h-full bg-primary transition-all duration-300 ease-out shadow-[0_0_10px_rgba(255,85,64,0.5)]"
             style={{ width: `${((currentQ + 1) / questions.length) * 100}%` }}
           />
         </div>
@@ -450,7 +550,7 @@ export default function Round1Page() {
                     onClick={() => setAnswers((prev) => ({ ...prev, [q._id]: i }))}
                     className={`w-full flex items-center gap-4 p-4 md:p-5 text-left border transition-all ${selected ? 'bg-primary/5 border-primary shadow-[0_0_15px_rgba(255,85,64,0.1)]' : 'bg-surface-container-low border-outline-variant/30 hover:border-outline-variant hover:bg-surface-container-highest'}`}
                   >
-                    <span 
+                    <span
                       className={`w-8 h-8 flex items-center justify-center font-headline text-xs tracking-widest shrink-0 transition-colors ${selected ? 'bg-primary text-on-primary font-bold shadow-[0_0_10px_rgba(255,85,64,0.3)]' : 'bg-surface-container-highest border border-outline-variant text-secondary'}`}
                     >
                       {String.fromCharCode(65 + i)}

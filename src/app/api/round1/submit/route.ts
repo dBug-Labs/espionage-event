@@ -6,7 +6,7 @@ import { getConfig } from '@/models/EventConfig';
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, answers, warnings } = await req.json();
+    const { email, answers, warnings, keyViolations } = await req.json();
     // answers: [{ questionId: string, selectedOption: number }]
 
     if (!email || !answers) {
@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
     participant.round1Score = score;
     participant.round1SubmittedAt = new Date();
     participant.round1Warnings = warnings || 0;
+    participant.round1KeyViolations = keyViolations || 0;
     await participant.save();
 
     return NextResponse.json({
