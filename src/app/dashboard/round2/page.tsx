@@ -43,6 +43,7 @@ interface RunOutput {
 }
 
 const MAX_WARNINGS = 3;
+const MAX_KEY_VIOLATIONS = 6;
 
 export default function Round2Page() {
   const router = useRouter();
@@ -60,17 +61,25 @@ export default function Round2Page() {
   const [submitResult, setSubmitResult] = useState<{ verdict: string; passed: number; total: number; results: TestResult[] } | null>(null);
   const [verdicts, setVerdicts] = useState<Record<string, string>>({});
   const [warnings, setWarnings] = useState(0);
+  const [keyViolations, setKeyViolations] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
   const [warningMessage, setWarningMessage] = useState('');
+  const [showKeyWarning, setShowKeyWarning] = useState(false);
+  const [keyWarningMessage, setKeyWarningMessage] = useState('');
   const [started, setStarted] = useState(false);
   const [disqualified, setDisqualified] = useState(false);
   const [startError, setStartError] = useState('');
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [allowFullscreenExit, setAllowFullscreenExit] = useState(false);
+  const [isFinalSubmitted, setIsFinalSubmitted] = useState(false);
+  const [showFinalSubmitConfirm, setShowFinalSubmitConfirm] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(90 * 60); // 90 minutes
   const warningsRef = useRef(0);
+  const keyViolationsRef = useRef(0);
   const codeRef = useRef<Record<string, Record<string, string>>>({});
   const allowFullscreenExitRef = useRef(false);
   const warningTimeoutRef = useRef<number | null>(null);
+  const keyWarningTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -132,10 +141,35 @@ export default function Round2Page() {
     }
   }, []);
 
+  const triggerKeyViolation = useCallback((key: string) => {
+    const newCount = keyViolationsRef.current + 1;
+    keyViolationsRef.current = newCount;
+    setKeyViolations(newCount);
+    setKeyWarningMessage(`KEY VIOLATION ${newCount}/${MAX_KEY_VIOLATIONS}: Blocked key "${key.toUpperCase()}" detected!`);
+    setShowKeyWarning(true);
+
+    if (keyWarningTimeoutRef.current) {
+      window.clearTimeout(keyWarningTimeoutRef.current);
+      keyWarningTimeoutRef.current = null;
+    }
+
+    keyWarningTimeoutRef.current = window.setTimeout(() => {
+      setShowKeyWarning(false);
+      keyWarningTimeoutRef.current = null;
+    }, 2500);
+
+    if (newCount >= MAX_KEY_VIOLATIONS) {
+      setDisqualified(true);
+    }
+  }, []);
+
   useEffect(() => {
     return () => {
       if (warningTimeoutRef.current) {
         window.clearTimeout(warningTimeoutRef.current);
+      }
+      if (keyWarningTimeoutRef.current) {
+        window.clearTimeout(keyWarningTimeoutRef.current);
       }
     };
   }, []);
@@ -157,6 +191,7 @@ export default function Round2Page() {
       if (isShortcutBlocked(event)) {
         event.preventDefault();
         event.stopPropagation();
+        triggerKeyViolation(event.key);
       }
     };
     const prevent = (event: Event) => event.preventDefault();
@@ -176,7 +211,7 @@ export default function Round2Page() {
       document.removeEventListener('paste', prevent);
       document.removeEventListener('keydown', handleKeydown, true);
     };
-  }, [allowFullscreenExit, disqualified, started, triggerWarning]);
+  }, [allowFullscreenExit, disqualified, started, triggerWarning, triggerKeyViolation]);
 
   useEffect(() => {
     if (!started || allowFullscreenExit) return;
@@ -194,6 +229,45 @@ export default function Round2Page() {
     if (!allowFullscreenExit) return;
     unlockSecureTestKeys();
   }, [allowFullscreenExit]);
+
+  const handleFinalSubmit = useCallback(async () => {
+    if (isFinalSubmitted) return;
+    setIsFinalSubmitted(true);
+    setShowFinalSubmitConfirm(false);
+    try {
+      const res = await fetch('/api/round2/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: session?.email })
+      });
+      if (res.ok) {
+        setAllowFullscreenExit(true);
+        allowFullscreenExitRef.current = true;
+      }
+    } catch {
+      // silent fail if already submitted
+    }
+  }, [isFinalSubmitted, session?.email]);
+
+  useEffect(() => {
+    if (!started || isFinalSubmitted || disqualified) return;
+    const timerId = window.setInterval(() => {
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(timerId);
+  }, [started, isFinalSubmitted, disqualified]);
+
+  useEffect(() => {
+    if (timeLeft === 0 && !isFinalSubmitted && !disqualified) {
+      handleFinalSubmit();
+    }
+  }, [timeLeft, isFinalSubmitted, disqualified, handleFinalSubmit]);
+
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   async function handleStart() {
     const entered = await enterSecureFullscreen();
@@ -420,7 +494,11 @@ export default function Round2Page() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="material-symbols-outlined text-[16px] text-error mt-0.5">warning</span>
-                <span>You get <strong className="text-error font-bold">3 warnings max</strong> before your mission is permanently locked.</span>
+                <span>You get <strong className="text-error font-bold">3 warnings max</strong> for fullscreen/tab violations before your mission is permanently locked.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="material-symbols-outlined text-[16px] text-orange-500 mt-0.5">keyboard</span>
+                <span>Windows, Alt, and function keys are <strong className="text-orange-500 font-bold">blocked</strong>. <strong className="text-orange-500 font-bold">6 key violations</strong> = mission locked.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="material-symbols-outlined text-[16px] text-primary mt-0.5">visibility_off</span>
@@ -453,9 +531,21 @@ export default function Round2Page() {
           <h1 className="font-headline text-4xl md:text-5xl font-black uppercase tracking-tighter text-error mb-4 glow-red">
             MISSION BLOCKED
           </h1>
-          <p className="text-on-surface font-mono text-sm leading-relaxed mb-8">
+          <p className="text-on-surface font-mono text-sm leading-relaxed mb-4">
             SECURITY BREACH DETECTED. THE WARNING LIMIT WAS EXCEEDED AFTER LEAVING THE SECURE FULLSCREEN ENVIRONMENT OR ATTEMPTING BLOCKED OPERATIONS.
           </p>
+          <div className="flex gap-4 justify-center mb-8">
+            {warnings > 0 && (
+              <span className="text-error font-mono text-xs border border-error/30 bg-error/10 px-3 py-1">
+                {warnings} FULLSCREEN WARNINGS
+              </span>
+            )}
+            {keyViolations > 0 && (
+              <span className="text-orange-500 font-mono text-xs border border-orange-500/30 bg-orange-500/10 px-3 py-1">
+                {keyViolations} KEY VIOLATIONS
+              </span>
+            )}
+          </div>
           <button className="px-8 py-4 border border-outline-variant text-on-surface font-headline font-bold text-xs tracking-widest uppercase hover:text-error hover:border-error transition-all mx-auto flex items-center gap-2" onClick={() => leaveSecureEnvironment('/dashboard')}>
             <span className="material-symbols-outlined text-[16px]">arrow_back</span>
             RETURN TO BASE
@@ -485,6 +575,18 @@ export default function Round2Page() {
         </div>
       )}
 
+      {/* Key violation warning banner */}
+      {showKeyWarning && !showWarning && (
+        <div className="fixed top-0 left-0 right-0 z-[9998] flex justify-center p-4 animate-[slideDown_0.3s_ease-out]">
+          <div className="bg-[#1a1200] border-2 border-orange-500 px-8 py-4 max-w-xl w-full text-center shadow-[0_0_40px_rgba(255,165,0,0.3)]">
+            <div className="flex items-center justify-center gap-3">
+              <span className="material-symbols-outlined text-orange-500 text-2xl">keyboard</span>
+              <p className="text-orange-400 font-mono text-sm font-bold">{keyWarningMessage}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showSubmitConfirm && (
         <div className="fixed inset-0 z-[9998] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
           <div className="w-full max-w-md border border-primary/30 bg-surface-container-low p-6 text-center shadow-[0_0_30px_rgba(255,85,64,0.15)]">
@@ -504,6 +606,32 @@ export default function Round2Page() {
                 className="w-full px-6 py-3 border border-outline-variant/40 text-on-surface font-headline font-bold text-xs tracking-widest uppercase"
               >
                 KEEP EDITING
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showFinalSubmitConfirm && (
+        <div className="fixed inset-0 z-[9998] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="w-full max-w-md border border-error/50 bg-[#0a0000] p-6 text-center shadow-[0_0_50px_rgba(255,0,0,0.15)]">
+            <span className="material-symbols-outlined text-error text-5xl mb-4">flag</span>
+            <h2 className="font-headline text-xl font-black uppercase tracking-widest text-error mb-3 glow-red">Confirm Final Submission</h2>
+            <p className="text-sm text-on-surface-variant leading-relaxed mb-6">
+              Are you absolutely sure? This will end Round 2 and lock all your submissions. This action cannot be undone.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => handleFinalSubmit()}
+                className="w-full px-6 py-3 bg-error text-on-error font-headline font-black text-xs tracking-widest uppercase hover:bg-error/90 active:scale-[0.98] shadow-[0_0_15px_rgba(255,0,0,0.3)] transition-all"
+              >
+                YES, END ROUND 2
+              </button>
+              <button
+                onClick={() => setShowFinalSubmitConfirm(false)}
+                className="w-full px-6 py-3 border border-outline-variant/40 text-on-surface font-headline font-bold text-xs tracking-widest uppercase hover:bg-surface-container-highest transition-all"
+              >
+                NO, KEEP HACKING
               </button>
             </div>
           </div>
@@ -542,16 +670,57 @@ export default function Round2Page() {
           })}
         </div>
 
-        <div className="p-4 border-t border-outline-variant/30 bg-[#0e0e0e]">
-          <div className="flex items-center justify-between font-headline text-[10px] tracking-widest uppercase">
-            <span className="text-secondary">Security Status</span>
-            <span className={`font-bold ${warnings > 0 ? 'text-error' : 'text-primary'}`}>
-              WARN: {warnings}/{MAX_WARNINGS}
-            </span>
+        <div className="p-4 border-t border-outline-variant/30 bg-[#0e0e0e] space-y-4">
+          <div className="bg-primary/5 border border-primary/20 p-3 flex flex-col gap-2">
+            <div className="flex items-center justify-between font-headline text-[10px] tracking-widest uppercase">
+              <span className="text-secondary flex items-center gap-1"><span className="material-symbols-outlined text-sm">timer</span> TIME REMAINING</span>
+              <span className={`font-bold ${timeLeft < 300 ? 'text-error animate-pulse' : 'text-primary'}`}>
+                {formatTime(timeLeft)}
+              </span>
+            </div>
+            <div className="w-full h-1 bg-surface-container-highest mt-1 hidden">
+               {/* visual timer bar could go here */}
+            </div>
           </div>
-          <div className="w-full h-1 bg-surface-container-highest mt-2">
-            <div className="h-full bg-error transition-all" style={{ width: `${(warnings / MAX_WARNINGS) * 100}%` }}></div>
+          <div>
+            <div className="flex items-center justify-between font-headline text-[10px] tracking-widest uppercase">
+              <span className="text-secondary">Fullscreen Warnings</span>
+              <span className={`font-bold ${warnings > 0 ? 'text-error' : 'text-primary'}`}>
+                {warnings}/{MAX_WARNINGS}
+              </span>
+            </div>
+            <div className="w-full h-1 bg-surface-container-highest mt-1">
+              <div className="h-full bg-error transition-all" style={{ width: `${(warnings / MAX_WARNINGS) * 100}%` }}></div>
+            </div>
           </div>
+          <div>
+            <div className="flex items-center justify-between font-headline text-[10px] tracking-widest uppercase">
+              <span className="text-secondary">Key Violations</span>
+              <span className={`font-bold ${keyViolations > 0 ? 'text-orange-500' : 'text-primary'}`}>
+                {keyViolations}/{MAX_KEY_VIOLATIONS}
+              </span>
+            </div>
+            <div className="w-full h-1 bg-surface-container-highest mt-1">
+              <div className="h-full bg-orange-500 transition-all" style={{ width: `${(keyViolations / MAX_KEY_VIOLATIONS) * 100}%` }}></div>
+            </div>
+          </div>
+          {isFinalSubmitted ? (
+            <button
+              onClick={() => leaveSecureEnvironment('/dashboard')}
+              className="w-full py-3 bg-surface-container-highest border border-outline-variant/30 text-on-surface font-headline font-bold text-[10px] tracking-widest uppercase hover:text-primary transition-all flex justify-center items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+              RETURN TO DASHBOARD
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowFinalSubmitConfirm(true)}
+              className="w-full py-3 bg-error/10 border border-error/50 text-error font-headline font-bold text-[10px] tracking-widest uppercase hover:bg-error hover:text-on-error shadow-[0_0_15px_rgba(255,0,0,0.15)] transition-all flex justify-center items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[14px]">flag</span>
+              FINAL SUBMIT
+            </button>
+          )}
         </div>
       </div>
 
@@ -613,8 +782,8 @@ export default function Round2Page() {
           <div className="flex items-center gap-3">
             <button
               onClick={handleRun}
-              disabled={running || submitting}
-              className={`px-6 py-1.5 font-headline text-[10px] font-bold tracking-widest uppercase border transition-all flex items-center gap-2 ${(running || submitting) ? 'bg-surface-container-highest border-outline-variant/30 text-secondary cursor-not-allowed' : 'bg-surface-container-highest border-outline-variant/50 text-on-surface hover:text-primary hover:border-primary'}`}
+              disabled={running || submitting || isFinalSubmitted}
+              className={`px-6 py-1.5 font-headline text-[10px] font-bold tracking-widest uppercase border transition-all flex items-center gap-2 ${(running || submitting || isFinalSubmitted) ? 'bg-surface-container-highest border-outline-variant/30 text-secondary cursor-not-allowed' : 'bg-surface-container-highest border-outline-variant/50 text-on-surface hover:text-primary hover:border-primary'}`}
             >
               {running ? (
                 <><span className="material-symbols-outlined text-[14px] animate-spin">refresh</span> EXECUTING...</>
@@ -624,8 +793,8 @@ export default function Round2Page() {
             </button>
             <button
               onClick={handleSubmit}
-              disabled={running || submitting}
-              className={`px-6 py-1.5 font-headline text-[10px] font-bold tracking-widest uppercase transition-all flex items-center gap-2 ${(running || submitting) ? 'bg-primary/20 text-primary/50 cursor-not-allowed border border-primary/10' : 'bg-primary text-on-primary hover:bg-primary-container active:scale-[0.98] shadow-[0_0_15px_rgba(255,85,64,0.3)]'}`}
+              disabled={running || submitting || isFinalSubmitted}
+              className={`px-6 py-1.5 font-headline text-[10px] font-bold tracking-widest uppercase transition-all flex items-center gap-2 ${(running || submitting || isFinalSubmitted) ? 'bg-primary/20 text-primary/50 cursor-not-allowed border border-primary/10' : 'bg-primary text-on-primary hover:bg-primary-container active:scale-[0.98] shadow-[0_0_15px_rgba(255,85,64,0.3)]'}`}
             >
               {submitting ? (
                 <><span className="material-symbols-outlined text-[14px] animate-spin">sync</span> JUDGING...</>
@@ -649,6 +818,7 @@ export default function Round2Page() {
             theme="vs-dark"
             loading={<div className="font-mono text-xs text-secondary animate-pulse p-4">CONNECTING TO COMPILER...</div>}
             options={{
+              readOnly: isFinalSubmitted,
               fontSize: 14,
               fontFamily: "'JetBrains Mono', 'Courier New', monospace",
               contextmenu: false,

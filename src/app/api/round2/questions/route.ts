@@ -24,6 +24,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'You are not shortlisted for Round 2.' }, { status: 403 });
     }
 
+    if (!participant.attendanceRound2?.present) {
+      return NextResponse.json(
+        { error: 'Attendance not marked for Round 2. Please check in with an admin first.' },
+        { status: 403 }
+      );
+    }
+
     const allQuestions = await CodingQuestion.find({}, '-hiddenTestCases -wrappers').sort({ order: 1 }).lean();
     const normalizedQuestions = allQuestions.map((question) => ({
       ...question,

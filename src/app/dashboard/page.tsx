@@ -25,6 +25,8 @@ interface ParticipantData {
   round1SubmittedAt: string | null;
   isShortlisted: boolean;
   round2Score: number | null;
+  attendanceRound1?: { present: boolean; checkedAt: string | null };
+  attendanceRound2?: { present: boolean; checkedAt: string | null };
 }
 
 export default function DashboardPage() {
@@ -190,20 +192,34 @@ export default function DashboardPage() {
 
             <div className="mt-10 flex gap-4 flex-wrap">
               {round1Status === 'ACTIVE' && (
-                <Link href="/dashboard/round1">
-                  <button className="bg-primary text-on-primary px-8 py-3 font-headline font-black tracking-widest uppercase text-sm hover:shadow-[0_0_20px_rgba(255,180,168,0.4)] transition-all flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm">terminal</span>
-                    LAUNCH_R1_TERMINAL
+                participant?.attendanceRound1?.present ? (
+                  <Link href="/dashboard/round1">
+                    <button className="bg-primary text-on-primary px-8 py-3 font-headline font-black tracking-widest uppercase text-sm hover:shadow-[0_0_20px_rgba(255,180,168,0.4)] transition-all flex items-center gap-2">
+                      <span className="material-symbols-outlined text-sm">terminal</span>
+                      LAUNCH_R1_TERMINAL
+                    </button>
+                  </Link>
+                ) : (
+                  <button disabled className="bg-surface-variant text-on-surface-variant px-8 py-3 font-headline font-black tracking-widest uppercase text-sm opacity-70 cursor-not-allowed border border-orange-500/30 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-orange-500">badge</span>
+                    <span className="text-orange-500">ATTENDANCE REQUIRED</span>
                   </button>
-                </Link>
+                )
               )}
               {round2Status === 'ACTIVE' && (
-                <Link href="/dashboard/round2">
-                  <button className="bg-primary text-on-primary px-8 py-3 font-headline font-black tracking-widest uppercase text-sm hover:shadow-[0_0_20px_rgba(255,180,168,0.4)] transition-all flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm">code</span>
-                    LAUNCH_R2_TERMINAL
+                participant?.attendanceRound2?.present ? (
+                  <Link href="/dashboard/round2">
+                    <button className="bg-primary text-on-primary px-8 py-3 font-headline font-black tracking-widest uppercase text-sm hover:shadow-[0_0_20px_rgba(255,180,168,0.4)] transition-all flex items-center gap-2">
+                      <span className="material-symbols-outlined text-sm">code</span>
+                      LAUNCH_R2_TERMINAL
+                    </button>
+                  </Link>
+                ) : (
+                  <button disabled className="bg-surface-variant text-on-surface-variant px-8 py-3 font-headline font-black tracking-widest uppercase text-sm opacity-70 cursor-not-allowed border border-orange-500/30 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-orange-500">badge</span>
+                    <span className="text-orange-500">ATTENDANCE REQUIRED</span>
                   </button>
-                </Link>
+                )
               )}
               {round1Status !== 'ACTIVE' && round2Status !== 'ACTIVE' && (
                 <button disabled className="bg-surface-variant text-on-surface-variant px-8 py-3 font-headline font-black tracking-widest uppercase text-sm opacity-50 cursor-not-allowed border border-outline-variant/30 flex items-center gap-2">

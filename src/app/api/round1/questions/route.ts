@@ -3,8 +3,19 @@ import connectToDatabase from '@/lib/mongodb';
 import MCQQuestion from '@/models/MCQQuestion';
 import Participant from '@/models/Participant';
 import { getConfig } from '@/models/EventConfig';
+import { hashString } from '@/lib/round2';
 
 const ROUND1_QUESTION_COUNT = 25;
+
+function seededShuffle<T>(items: T[], seed: string): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const h = hashString(`${seed}::${i}`);
+    const j = h % (i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -20,6 +31,15 @@ export async function GET(req: NextRequest) {
 
     const participant = await Participant.findOne({ email: email.toLowerCase() });
     if (!participant) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
+
+    // Check attendance before allowing test
+    if (!participant.attendanceRound1?.present) {
+      return NextResponse.json(
+        { error: 'Attendance not marked for Round 1. Please check in with an admin first.' },
+        { status: 403 }
+      );
+    }
+
     if (participant.round1SubmittedAt) {
       return NextResponse.json({ error: 'You have already submitted Round 1.' }, { status: 403 });
     }
@@ -36,13 +56,15 @@ export async function GET(req: NextRequest) {
       const idMap = new Map(participant.round1QuestionIds.map((id, index) => [id.toString(), index]));
       questions.sort((a, b) => (idMap.get(a._id.toString()) ?? 0) - (idMap.get(b._id.toString()) ?? 0));
     } else {
-      // Assign the curated hard set in a stable order.
-      const allQuestions = await MCQQuestion.find({}, '_id').sort({ order: 1 }).lean();
+      // Pick a seeded-random subset of 25 from all MCQs, unique per candidate
+      const allQuestions = await MCQQuestion.find({}, '_id').lean();
       if (allQuestions.length === 0) {
         return NextResponse.json({ questions: [] });
       }
 
-      const selected = allQuestions.slice(0, ROUND1_QUESTION_COUNT);
+      const normalizedEmail = email.toLowerCase();
+      const shuffled = seededShuffle(allQuestions, normalizedEmail);
+      const selected = shuffled.slice(0, ROUND1_QUESTION_COUNT);
       const selectedIds = selected.map((q) => q._id.toString());
 
       // Save to participant
