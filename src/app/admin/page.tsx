@@ -96,7 +96,17 @@ interface CodingQuestion {
   order: number;
 }
 
-type Tab = 'participants' | 'controls' | 'round1' | 'round2' | 'announcements' | 'questions';
+interface Organizer {
+  _id: string;
+  name: string;
+  email: string;
+  regNo: string;
+  role: string;
+  present: boolean;
+  checkedAt: string | null;
+}
+
+type Tab = 'participants' | 'controls' | 'round1' | 'round2' | 'announcements' | 'questions' | 'organizers';
 
 export default function AdminPage() {
   const [password, setPassword] = useState('');
@@ -151,6 +161,10 @@ export default function AdminPage() {
     order: 0
   });
 
+  // Organizers State
+  const [organizers, setOrganizers] = useState<Organizer[]>([]);
+  const [newOrg, setNewOrg] = useState({ name: '', email: '', regNo: '', role: '' });
+
   const fetchParticipants = useCallback(async (pw: string) => {
     setLoading(true);
     try {
@@ -190,6 +204,14 @@ export default function AdminPage() {
     finally { setQuestionsLoading(false); }
   }, []);
 
+  const fetchOrganizers = useCallback(async (pw: string) => {
+    try {
+      const res = await fetch('/api/admin/organizers', { headers: { Authorization: `Bearer ${pw}` } });
+      const data = await res.json();
+      setOrganizers(data.organizers || []);
+    } catch (err) { console.error(err); }
+  }, []);
+
   async function handleAuth() {
     setAuthLoading(true);
     setAuthError('');
@@ -203,6 +225,7 @@ export default function AdminPage() {
         fetchNotifications();
         fetchQuestions(password, 'mcq');
         fetchQuestions(password, 'coding');
+        fetchOrganizers(password);
       } else {
         setAuthError('Incorrect password.');
       }
@@ -215,10 +238,11 @@ export default function AdminPage() {
       const interval = setInterval(() => {
         fetchParticipants(savedPassword);
         fetchConfig();
+        fetchOrganizers(savedPassword);
       }, 30000);
       return () => clearInterval(interval);
     }
-  }, [authed, savedPassword, fetchParticipants, fetchConfig]);
+  }, [authed, savedPassword, fetchParticipants, fetchConfig, fetchOrganizers]);
 
   async function toggleConfig(field: string, value: boolean) {
     setConfigLoading(true);
@@ -427,6 +451,47 @@ export default function AdminPage() {
     finally { setExporting(false); }
   }
 
+  async function handleAddOrganizer() {
+    if (!newOrg.name || !newOrg.email || !newOrg.regNo || !newOrg.role) return alert('Fill all fields for organizer.');
+    try {
+      const res = await fetch('/api/admin/organizers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: savedPassword, ...newOrg }),
+      });
+      if (res.ok) {
+        alert('Added organizer!');
+        fetchOrganizers(savedPassword);
+        setNewOrg({ name: '', email: '', regNo: '', role: '' });
+      } else alert('Failed to add organizer.');
+    } catch { alert('Error adding organizer.'); }
+  }
+
+  async function handleToggleOrgAttendance(id: string, currentStatus: boolean) {
+    try {
+      const res = await fetch('/api/admin/organizers', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: savedPassword, id, present: !currentStatus }),
+      });
+      if (res.ok) fetchOrganizers(savedPassword);
+      else alert('Failed to update attendance.');
+    } catch { alert('Error updating attendance.'); }
+  }
+
+  async function handleDeleteOrganizer(id: string) {
+    if (!confirm('Remove this team member?')) return;
+    try {
+      const res = await fetch('/api/admin/organizers', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: savedPassword, id }),
+      });
+      if (res.ok) fetchOrganizers(savedPassword);
+      else alert('Failed to delete.');
+    } catch { alert('Error.'); }
+  }
+
   const filtered = participants.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.participantId.toLowerCase().includes(search.toLowerCase()) ||
@@ -558,6 +623,7 @@ export default function AdminPage() {
             { id: 'round2', label: 'R2 AI RESULTS', icon: 'neurology' },
             { id: 'announcements', label: 'BROADCASTS', icon: 'campaign' },
             { id: 'questions', label: 'MISSION DATABASE', icon: 'database' },
+            { id: 'organizers', label: 'TEAM ATTENDANCE', icon: 'badge' },
           ] as { id: Tab; label: string; icon: string }[]).map((tab) => (
             <button
               key={tab.id}
@@ -1137,6 +1203,61 @@ export default function AdminPage() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ── Tab: Organizers ── */}
+          {activeTab === 'organizers' && (
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+              <div className="xl:col-span-2 overflow-x-auto border border-outline-variant/30 custom-scrollbar max-h-[800px]">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead className="sticky top-0 bg-[#0a0a0a] border-b border-outline-variant/50 text-[9px] font-headline tracking-widest uppercase text-primary">
+                    <tr>
+                      <th className="p-3">Name</th>
+                      <th className="p-3">Email</th>
+                      <th className="p-3">Reg No</th>
+                      <th className="p-3">Role</th>
+                      <th className="p-3">Attendance</th>
+                      <th className="p-3">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {organizers.map((org) => (
+                      <tr key={org._id} className="border-b border-outline-variant/10 hover:bg-surface-container-highest">
+                        <td className="p-3 font-bold text-on-surface">{org.name}</td>
+                        <td className="p-3 text-secondary">{org.email}</td>
+                        <td className="p-3 text-secondary font-mono">{org.regNo}</td>
+                        <td className="p-3 text-secondary font-mono">{org.role}</td>
+                        <td className="p-3">
+                          <button
+                            onClick={() => handleToggleOrgAttendance(org._id, org.present)}
+                            className={`px-3 py-1 font-headline text-[9px] tracking-widest uppercase border transition-colors ${org.present ? 'bg-green-500/10 text-green-500 border-green-500/50' : 'bg-surface-container-highest text-secondary border-outline-variant/50'}`}
+                          >
+                            {org.present ? 'PRESENT' : 'MARK PRESENT'}
+                          </button>
+                        </td>
+                        <td className="p-3">
+                          <button onClick={() => handleDeleteOrganizer(org._id)} className="text-secondary hover:text-error"><span className="material-symbols-outlined text-[16px]">delete</span></button>
+                        </td>
+                      </tr>
+                    ))}
+                    {organizers.length === 0 && (
+                      <tr><td colSpan={6} className="p-8 text-center text-secondary font-headline text-xs tracking-widest uppercase">No organizing team members found.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="bg-[#0a0a0a] border border-outline-variant/30 p-6 flex flex-col gap-4 h-fit">
+                <h3 className="font-headline text-sm text-primary tracking-[0.2em] uppercase border-b border-outline-variant/20 pb-2">ADD TEAM MEMBER</h3>
+                <input placeholder="Full Name" value={newOrg.name} onChange={(e) => setNewOrg({ ...newOrg, name: e.target.value })} className="bg-surface-container-highest border border-outline-variant/50 focus:border-primary text-on-surface p-3 text-sm outline-none" />
+                <input placeholder="Email Address" type="email" value={newOrg.email} onChange={(e) => setNewOrg({ ...newOrg, email: e.target.value })} className="bg-surface-container-highest border border-outline-variant/50 focus:border-primary text-on-surface p-3 text-sm outline-none" />
+                <input placeholder="Registration No. (e.g. RA...)" value={newOrg.regNo} onChange={(e) => setNewOrg({ ...newOrg, regNo: e.target.value.toUpperCase() })} className="bg-surface-container-highest border border-outline-variant/50 focus:border-primary text-on-surface p-3 text-sm outline-none font-mono" />
+                <input placeholder="Role (e.g. Core, Tech, Volunteer)" value={newOrg.role} onChange={(e) => setNewOrg({ ...newOrg, role: e.target.value })} className="bg-surface-container-highest border border-outline-variant/50 focus:border-primary text-on-surface p-3 text-sm outline-none" />
+                <button onClick={handleAddOrganizer} className="bg-primary text-on-primary font-headline font-bold text-[10px] tracking-widest uppercase hover:bg-primary-container p-3 mt-2 transition-colors">
+                  ADD MEMBER
+                </button>
+              </div>
             </div>
           )}
         </div>
