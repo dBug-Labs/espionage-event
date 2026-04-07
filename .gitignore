@@ -49,3 +49,4 @@ next-env.d.ts
 /generate_questions.ts
 /merge_questions.js
 /test-rp.js
+/export_q_bank.ts
