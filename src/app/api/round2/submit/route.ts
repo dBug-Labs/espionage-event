@@ -5,7 +5,7 @@ import { getConfig } from '@/models/EventConfig';
 
 export async function POST(req: NextRequest) {
   try {
-    const { email } = await req.json();
+    const { email, warnings, keyViolations } = await req.json();
 
     if (!email) {
       return NextResponse.json({ error: 'Invalid submission request.' }, { status: 400 });
@@ -27,6 +27,8 @@ export async function POST(req: NextRequest) {
 
     // Mark the round as submitted
     participant.round2SubmittedAt = new Date();
+    participant.round2Warnings = warnings || 0;
+    participant.round2KeyViolations = keyViolations || 0;
     await participant.save();
 
     return NextResponse.json({
