@@ -27,10 +27,18 @@ export interface IParticipant extends Document {
   attendanceRound1: {
     present: boolean;
     checkedAt: Date | null;
+    leaderPresent?: boolean;
+    partnerPresent?: boolean;
+    leaderDept?: string;
+    partnerDept?: string;
   };
   attendanceRound2: {
     present: boolean;
     checkedAt: Date | null;
+    leaderPresent?: boolean;
+    partnerPresent?: boolean;
+    leaderDept?: string;
+    partnerDept?: string;
   };
   round1Score: number | null;
   round1SubmittedAt: Date | null;
@@ -111,10 +119,18 @@ const ParticipantSchema = new Schema<IParticipant>(
     attendanceRound1: {
       present: { type: Boolean, default: false },
       checkedAt: { type: Date, default: null },
+      leaderPresent: { type: Boolean, default: false },
+      partnerPresent: { type: Boolean, default: false },
+      leaderDept: { type: String, default: '' },
+      partnerDept: { type: String, default: '' },
     },
     attendanceRound2: {
       present: { type: Boolean, default: false },
       checkedAt: { type: Date, default: null },
+      leaderPresent: { type: Boolean, default: false },
+      partnerPresent: { type: Boolean, default: false },
+      leaderDept: { type: String, default: '' },
+      partnerDept: { type: String, default: '' },
     },
     round1Score: { type: Number, default: null },
     round1SubmittedAt: { type: Date, default: null },

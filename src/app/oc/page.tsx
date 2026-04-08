@@ -10,6 +10,7 @@ export default function OCRegistrationPage() {
     name: '',
     email: '',
     regNo: '',
+    deptName: '',
     role: 'Volunteer',
     password: 'dbug123',
   });
@@ -20,7 +21,7 @@ export default function OCRegistrationPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.regNo || !form.role) {
+    if (!form.name || !form.email || !form.regNo || !form.deptName || !form.role) {
       setMessage('All fields are required.');
       setStatus('error');
       return;
@@ -38,7 +39,7 @@ export default function OCRegistrationPage() {
       if (res.ok) {
         setStatus('success');
         setMessage('OC Registration Successful. Welcome to the shadow division.');
-        setForm(prev => ({ ...prev, name: '', email: '', regNo: '', role: 'Volunteer' })); // keep password so they can register multiple
+        setForm(prev => ({ ...prev, name: '', email: '', regNo: '', deptName: '', role: 'Volunteer' })); // keep password so they can register multiple
       } else {
         setStatus('error');
         setMessage(data.error || 'Registration failed. Check clearance code.');
@@ -141,6 +142,16 @@ export default function OCRegistrationPage() {
                   placeholder="RA2XXXXXXXXXXX" 
                   value={form.regNo} 
                   onChange={(e) => setForm(p => ({ ...p, regNo: e.target.value.toUpperCase() }))} 
+                />
+              </div>
+
+              <div className="group col-span-1 md:col-span-2">
+                <label className="font-headline text-[10px] uppercase tracking-[0.2em] text-secondary mb-2 block">Department Name *</label>
+                <input
+                  className={inputClass}
+                  placeholder="E.g. CSE / IT / ECE"
+                  value={form.deptName}
+                  onChange={(e) => setForm(p => ({ ...p, deptName: e.target.value }))}
                 />
               </div>
 
