@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { password, name, email, regNo, role } = await req.json();
+    const { password, name, email, regNo, role, deptName } = await req.json();
     if (password !== process.env.ADMIN_PASSWORD) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
       email,
       regNo,
       role,
+      deptName,
     });
 
     return NextResponse.json({ success: true, organizer: newOrganizer });

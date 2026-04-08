@@ -6,6 +6,22 @@ import Link from 'next/link';
 
 type AttendanceStage = 'round1' | 'round2';
 
+type TeamPreview = {
+  teamId: string;
+  teamName: string;
+  leaderName: string;
+  partnerName: string | null;
+  membersCount: number;
+  teamType: 'solo' | 'duo';
+};
+
+type AttendanceForm = {
+  leaderPresent: boolean;
+  partnerPresent: boolean;
+  leaderDept: string;
+  partnerDept: string;
+};
+
 export default function AttendancePage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
@@ -14,6 +30,14 @@ export default function AttendancePage() {
   const [manualTeamId, setManualTeamId] = useState('');
   const [stats, setStats] = useState({ checkedIn: 0, totalEligible: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [pendingTeam, setPendingTeam] = useState<TeamPreview | null>(null);
+  const [formError, setFormError] = useState('');
+  const [attendanceForm, setAttendanceForm] = useState<AttendanceForm>({
+    leaderPresent: true,
+    partnerPresent: true,
+    leaderDept: '',
+    partnerDept: '',
+  });
 
   const lastScannedRef = useRef<string>('');
 
@@ -65,7 +89,17 @@ export default function AttendancePage() {
 
   const normalizeTeamId = (value: string) => value.trim().toUpperCase();
 
-  const markAttendance = async (teamId: string) => {
+  function resetAttendanceForm(team: TeamPreview) {
+    setAttendanceForm({
+      leaderPresent: true,
+      partnerPresent: team.teamType === 'duo',
+      leaderDept: '',
+      partnerDept: '',
+    });
+    setFormError('');
+  }
+
+  const loadTeamForAttendance = async (teamId: string) => {
     const normalizedTeamId = normalizeTeamId(teamId);
     if (isProcessing) return;
     if (!normalizedTeamId) return;
@@ -74,26 +108,24 @@ export default function AttendancePage() {
     setIsProcessing(true);
     lastScannedRef.current = `${stage}:${normalizedTeamId}`;
     setScanResult(null);
+    setPendingTeam(null);
+    setFormError('');
 
     try {
-      const res = await fetch('/api/attendance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teamId: normalizedTeamId, stage })
-      });
-
+      const res = await fetch(`/api/attendance?teamId=${encodeURIComponent(normalizedTeamId)}&stage=${stage}`);
       const data = await res.json();
 
       if (res.ok) {
-        setScanResult({
-          type: 'success',
-          message: `${stage === 'round1' ? 'ROUND 1' : 'ROUND 2'} CHECK-IN SUCCESSFUL`,
-          teamInfo: data
-        });
-        fetchStats(stage);
-
-        const audio = new Audio('/success-beep.mp3');
-        audio.play().catch(() => {}).then(() => {});
+        const teamInfo: TeamPreview = {
+          teamId: data.teamId,
+          teamName: data.teamName,
+          leaderName: data.leaderName,
+          partnerName: data.partnerName,
+          membersCount: data.membersCount,
+          teamType: data.teamType,
+        };
+        setPendingTeam(teamInfo);
+        resetAttendanceForm(teamInfo);
       } else if (data.alreadyCheckedIn) {
         setScanResult({
           type: 'warning',
@@ -113,10 +145,77 @@ export default function AttendancePage() {
     }
   };
 
+  async function submitAttendanceForm(e: React.FormEvent) {
+    e.preventDefault();
+    if (!pendingTeam) return;
+
+    if (!attendanceForm.leaderPresent && !(pendingTeam.teamType === 'duo' && attendanceForm.partnerPresent)) {
+      setFormError('Select at least one present member.');
+      return;
+    }
+
+    if (attendanceForm.leaderPresent && !attendanceForm.leaderDept.trim()) {
+      setFormError('Enter the department for the leader.');
+      return;
+    }
+
+    if (pendingTeam.teamType === 'duo' && attendanceForm.partnerPresent && !attendanceForm.partnerDept.trim()) {
+      setFormError('Enter the department for the second member.');
+      return;
+    }
+
+    setIsProcessing(true);
+    setFormError('');
+    setScanResult(null);
+
+    try {
+      const res = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teamId: pendingTeam.teamId,
+          stage,
+          leaderPresent: attendanceForm.leaderPresent,
+          partnerPresent: pendingTeam.teamType === 'duo' ? attendanceForm.partnerPresent : false,
+          leaderDept: attendanceForm.leaderDept,
+          partnerDept: pendingTeam.teamType === 'duo' ? attendanceForm.partnerDept : '',
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setScanResult({
+          type: 'success',
+          message: `${stage === 'round1' ? 'ROUND 1' : 'ROUND 2'} CHECK-IN SUCCESSFUL`,
+          teamInfo: data
+        });
+        setPendingTeam(null);
+        setManualTeamId('');
+        fetchStats(stage);
+
+        const audio = new Audio('/success-beep.mp3');
+        audio.play().catch(() => {}).then(() => {});
+      } else if (data.alreadyCheckedIn) {
+        setPendingTeam(null);
+        setScanResult({
+          type: 'warning',
+          message: data.error
+        });
+      } else {
+        setFormError(data.error || 'VERIFICATION FAILED');
+      }
+    } catch {
+      setFormError('NETWORK ERROR');
+    } finally {
+      setIsProcessing(false);
+    }
+  }
+
   function onScanSuccess(decodedText: string) {
     const normalized = normalizeTeamId(decodedText);
     if (normalized.startsWith('ESP-')) {
-      markAttendance(normalized);
+      loadTeamForAttendance(normalized);
     }
   }
 
@@ -187,7 +286,7 @@ export default function AttendancePage() {
         </div>
       </nav>
 
-      <div className="relative z-10 w-full max-w-xl mx-auto mt-12">
+      <div className="relative z-10 w-full max-w-3xl mx-auto mt-12">
         <div className="text-center mb-8">
           <h1 className="font-headline text-3xl font-black uppercase text-on-surface tracking-widest mb-4">
             ENTRY <span className="text-primary glow-red">VERIFICATION</span>
@@ -195,13 +294,13 @@ export default function AttendancePage() {
 
           <div className="flex justify-center gap-3 mb-5">
             <button
-              onClick={() => { setStage('round1'); setScanResult(null); fetchStats('round1'); }}
+              onClick={() => { setStage('round1'); setScanResult(null); setPendingTeam(null); fetchStats('round1'); }}
               className={`px-5 py-3 border font-headline text-[10px] tracking-widest uppercase ${stage === 'round1' ? 'bg-primary text-on-primary border-primary' : 'border-outline-variant/40 text-secondary hover:text-on-surface hover:border-primary/50'}`}
             >
               Round 1 Attendance
             </button>
             <button
-              onClick={() => { setStage('round2'); setScanResult(null); fetchStats('round2'); }}
+              onClick={() => { setStage('round2'); setScanResult(null); setPendingTeam(null); fetchStats('round2'); }}
               className={`px-5 py-3 border font-headline text-[10px] tracking-widest uppercase ${stage === 'round2' ? 'bg-primary text-on-primary border-primary' : 'border-outline-variant/40 text-secondary hover:text-on-surface hover:border-primary/50'}`}
             >
               Round 2 Attendance
@@ -224,96 +323,195 @@ export default function AttendancePage() {
           </div>
         </div>
 
-        <div className="bg-surface-container-low border border-outline-variant/30 p-2 mb-8 shadow-2xl relative">
-          <div className="absolute top-0 right-0 p-2 font-headline text-[8px] text-outline-variant uppercase tracking-widest z-20 bg-surface-container-low">
-            OPTICAL-SENSOR_01
-          </div>
-          <style>{`
-            #reader { border: none !important; width: 100% !important; background: transparent !important; }
-            #reader button {
-              background: var(--color-primary-container) !important;
-              color: var(--color-on-primary-container) !important;
-              border: 1px solid var(--color-outline) !important;
-              padding: 10px 20px !important;
-              font-family: 'Space Grotesk', sans-serif !important;
-              font-size: 12px !important;
-              letter-spacing: 0.1em !important;
-              text-transform: uppercase !important;
-              font-weight: 700 !important;
-              border-radius: 0 !important;
-              margin: 10px !important;
-              cursor: pointer !important;
-              transition: all 0.2s !important;
-            }
-            #reader button:hover {
-              background: var(--color-primary) !important;
-              color: var(--color-on-primary) !important;
-            }
-            #reader select {
-              padding: 8px 12px !important;
-              border-radius: 0 !important;
-              background: var(--color-surface-container-highest) !important;
-              color: var(--color-on-surface) !important;
-              border: 1px solid var(--color-outline-variant) !important;
-              font-family: 'Space Grotesk', sans-serif !important;
-              font-size: 12px !important;
-              letter-spacing: 0.05em !important;
-              margin-bottom: 12px !important;
-              outline: none !important;
-            }
-            #reader__dashboard_section_csr span { color: var(--color-secondary) !important; font-family: 'Space Grotesk', sans-serif !important; font-size: 12px !important; letter-spacing: 0.1em !important; }
-            #reader a { color: var(--color-primary) !important; text-decoration: none !important; }
-            #reader__scan_region { background: #050505 !important; margin-top: 10px !important; border-radius: 0 !important; overflow: hidden !important; border: 1px solid var(--color-outline-variant) !important; }
-            #reader__dashboard_section_swaplink { text-decoration: none !important; font-family: 'Space Grotesk', sans-serif !important; font-size: 10px !important; letter-spacing: 0.1em !important; opacity: 0.7 !important; margin-top: 10px !important; display: inline-block !important; }
-          `}</style>
-          <div id="reader" className="w-full"></div>
-        </div>
-
-        <div className="flex gap-4 mb-8">
-          <input
-            type="text"
-            placeholder="MANUAL ID (ESP-001)"
-            value={manualTeamId}
-            onChange={(e) => setManualTeamId(normalizeTeamId(e.target.value))}
-            className="flex-1 bg-surface-container-highest border border-outline-variant/50 focus:border-primary focus:ring-0 text-on-surface font-headline tracking-widest text-sm px-4 py-3 placeholder:text-outline-variant/40 outline-none uppercase"
-          />
-          <button
-            onClick={() => manualTeamId && markAttendance(manualTeamId)}
-            className="px-8 bg-primary text-on-primary font-headline font-bold text-xs tracking-widest uppercase hover:bg-primary-container active:scale-[0.98] transition-all disabled:opacity-50 border border-primary/50"
-            disabled={isProcessing}
-          >
-            {isProcessing ? 'SCANNING...' : 'VERIFY'}
-          </button>
-        </div>
-
-        {scanResult && (
-          <div className={`p-6 border relative overflow-hidden animate-[fadeInUp_0.3s_ease] ${scanResult.type === 'success' ? 'bg-green-500/10 border-green-500/30' : scanResult.type === 'warning' ? 'bg-orange-500/10 border-orange-500/30' : 'bg-error/10 border-error/30'}`}>
-            <div className={`absolute inset-0 opacity-10 ${scanResult.type === 'success' ? 'bg-green-500' : scanResult.type === 'warning' ? 'bg-orange-500' : 'bg-error'}`}></div>
-
-            <div className="relative z-10">
-              <div className="flex items-center gap-4 mb-4">
-                <span className={`material-symbols-outlined text-4xl ${scanResult.type === 'success' ? 'text-green-500' : scanResult.type === 'warning' ? 'text-orange-500' : 'text-error glow-red'}`}>
-                  {scanResult.type === 'success' ? 'check_circle' : scanResult.type === 'warning' ? 'warning' : 'cancel'}
-                </span>
-                <h3 className={`font-headline text-xl font-black tracking-widest uppercase m-0 ${scanResult.type === 'success' ? 'text-green-500' : scanResult.type === 'warning' ? 'text-orange-500' : 'text-error'}`}>
-                  {scanResult.message}
-                </h3>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          <div>
+            <div className="bg-surface-container-low border border-outline-variant/30 p-2 mb-8 shadow-2xl relative">
+              <div className="absolute top-0 right-0 p-2 font-headline text-[8px] text-outline-variant uppercase tracking-widest z-20 bg-surface-container-low">
+                OPTICAL-SENSOR_01
               </div>
+              <style>{`
+                #reader { border: none !important; width: 100% !important; background: transparent !important; }
+                #reader button {
+                  background: var(--color-primary-container) !important;
+                  color: var(--color-on-primary-container) !important;
+                  border: 1px solid var(--color-outline) !important;
+                  padding: 10px 20px !important;
+                  font-family: 'Space Grotesk', sans-serif !important;
+                  font-size: 12px !important;
+                  letter-spacing: 0.1em !important;
+                  text-transform: uppercase !important;
+                  font-weight: 700 !important;
+                  border-radius: 0 !important;
+                  margin: 10px !important;
+                  cursor: pointer !important;
+                  transition: all 0.2s !important;
+                }
+                #reader button:hover {
+                  background: var(--color-primary) !important;
+                  color: var(--color-on-primary) !important;
+                }
+                #reader select {
+                  padding: 8px 12px !important;
+                  border-radius: 0 !important;
+                  background: var(--color-surface-container-highest) !important;
+                  color: var(--color-on-surface) !important;
+                  border: 1px solid var(--color-outline-variant) !important;
+                  font-family: 'Space Grotesk', sans-serif !important;
+                  font-size: 12px !important;
+                  letter-spacing: 0.05em !important;
+                  margin-bottom: 12px !important;
+                  outline: none !important;
+                }
+                #reader__dashboard_section_csr span { color: var(--color-secondary) !important; font-family: 'Space Grotesk', sans-serif !important; font-size: 12px !important; letter-spacing: 0.1em !important; }
+                #reader a { color: var(--color-primary) !important; text-decoration: none !important; }
+                #reader__scan_region { background: #050505 !important; margin-top: 10px !important; border-radius: 0 !important; overflow: hidden !important; border: 1px solid var(--color-outline-variant) !important; }
+                #reader__dashboard_section_swaplink { text-decoration: none !important; font-family: 'Space Grotesk', sans-serif !important; font-size: 10px !important; letter-spacing: 0.1em !important; opacity: 0.7 !important; margin-top: 10px !important; display: inline-block !important; }
+              `}</style>
+              <div id="reader" className="w-full"></div>
+            </div>
 
-              {scanResult.teamInfo && (
-                <div className="pt-4 border-t border-white/10 mt-2">
-                  <p className="font-headline text-[10px] tracking-widest uppercase text-secondary mb-1">TEAM ID</p>
-                  <p className="font-headline text-2xl font-black text-on-surface tracking-widest mb-4">{scanResult.teamInfo.teamId}</p>
-
-                  <div className="bg-surface-container-highest border border-outline-variant/20 p-4">
-                    <p className="font-body text-on-surface font-bold text-lg mb-1">{scanResult.teamInfo.teamName}</p>
-                    <p className="font-mono text-xs text-secondary mt-2 border-t border-outline-variant/10 pt-2"><span className="text-on-surface-variant">COMMANDER:</span> {scanResult.teamInfo.leaderName} <span className="mx-2 text-outline-variant">|</span> <span className="text-on-surface-variant">SQUAD SIZE:</span> {scanResult.teamInfo.membersCount}</p>
-                  </div>
-                </div>
-              )}
+            <div className="flex gap-4 mb-8">
+              <input
+                type="text"
+                placeholder="MANUAL ID (ESP-001)"
+                value={manualTeamId}
+                onChange={(e) => setManualTeamId(normalizeTeamId(e.target.value))}
+                className="flex-1 bg-surface-container-highest border border-outline-variant/50 focus:border-primary focus:ring-0 text-on-surface font-headline tracking-widest text-sm px-4 py-3 placeholder:text-outline-variant/40 outline-none uppercase"
+              />
+              <button
+                onClick={() => manualTeamId && loadTeamForAttendance(manualTeamId)}
+                className="px-8 bg-primary text-on-primary font-headline font-bold text-xs tracking-widest uppercase hover:bg-primary-container active:scale-[0.98] transition-all disabled:opacity-50 border border-primary/50"
+                disabled={isProcessing}
+              >
+                {isProcessing ? 'SCANNING...' : 'VERIFY'}
+              </button>
             </div>
           </div>
-        )}
+
+          <div>
+            <div className="bg-surface-container-low border border-outline-variant/30 p-6 shadow-[0_0_20px_rgba(0,0,0,0.2)]">
+              <h2 className="font-headline text-lg font-black uppercase tracking-widest text-primary mb-4">Attendance Form</h2>
+
+              {!pendingTeam ? (
+                <p className="text-sm text-secondary">
+                  1. Scan the QR code. 2. Select which members are present. 3. Enter each present member&apos;s department and submit.
+                </p>
+              ) : (
+                <form onSubmit={submitAttendanceForm} className="space-y-6">
+                  <div className="border border-outline-variant/20 bg-surface-container-highest p-4">
+                    <p className="font-headline text-[10px] tracking-widest uppercase text-secondary mb-1">Team ID</p>
+                    <p className="font-headline text-xl font-black tracking-widest text-on-surface mb-2">{pendingTeam.teamId}</p>
+                    <p className="text-on-surface font-bold">{pendingTeam.teamName}</p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="border border-outline-variant/20 p-4 bg-black/20">
+                      <label className="flex items-center gap-3 mb-4 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={attendanceForm.leaderPresent}
+                          onChange={(e) => setAttendanceForm((prev) => ({ ...prev, leaderPresent: e.target.checked }))}
+                          className="w-4 h-4 accent-[var(--color-primary)]"
+                        />
+                        <span className="font-headline text-xs uppercase tracking-widest text-on-surface">
+                          {pendingTeam.leaderName}
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        value={attendanceForm.leaderDept}
+                        onChange={(e) => setAttendanceForm((prev) => ({ ...prev, leaderDept: e.target.value }))}
+                        disabled={!attendanceForm.leaderPresent}
+                        placeholder="Leader Department"
+                        className="w-full bg-surface-container-highest border border-outline-variant/50 focus:border-primary text-on-surface px-4 py-3 text-sm outline-none disabled:opacity-50"
+                      />
+                    </div>
+
+                    {pendingTeam.teamType === 'duo' && pendingTeam.partnerName && (
+                      <div className="border border-outline-variant/20 p-4 bg-black/20">
+                        <label className="flex items-center gap-3 mb-4 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={attendanceForm.partnerPresent}
+                            onChange={(e) => setAttendanceForm((prev) => ({ ...prev, partnerPresent: e.target.checked }))}
+                            className="w-4 h-4 accent-[var(--color-primary)]"
+                          />
+                          <span className="font-headline text-xs uppercase tracking-widest text-on-surface">
+                            {pendingTeam.partnerName}
+                          </span>
+                        </label>
+                        <input
+                          type="text"
+                          value={attendanceForm.partnerDept}
+                          onChange={(e) => setAttendanceForm((prev) => ({ ...prev, partnerDept: e.target.value }))}
+                          disabled={!attendanceForm.partnerPresent}
+                          placeholder="Second Member Department"
+                          className="w-full bg-surface-container-highest border border-outline-variant/50 focus:border-primary text-on-surface px-4 py-3 text-sm outline-none disabled:opacity-50"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {formError && (
+                    <div className="border border-error/30 bg-error/10 text-error px-4 py-3 font-headline text-[10px] tracking-widest uppercase">
+                      {formError}
+                    </div>
+                  )}
+
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => { setPendingTeam(null); setFormError(''); }}
+                      className="flex-1 border border-outline-variant/40 text-on-surface px-4 py-3 font-headline text-[10px] tracking-widest uppercase"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isProcessing}
+                      className="flex-1 bg-primary text-on-primary px-4 py-3 font-headline font-bold text-[10px] tracking-widest uppercase disabled:opacity-50"
+                    >
+                      {isProcessing ? 'SUBMITTING...' : 'MARK ATTENDANCE'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+
+            {scanResult && (
+              <div className={`p-6 border relative overflow-hidden animate-[fadeInUp_0.3s_ease] mt-8 ${scanResult.type === 'success' ? 'bg-green-500/10 border-green-500/30' : scanResult.type === 'warning' ? 'bg-orange-500/10 border-orange-500/30' : 'bg-error/10 border-error/30'}`}>
+                <div className={`absolute inset-0 opacity-10 ${scanResult.type === 'success' ? 'bg-green-500' : scanResult.type === 'warning' ? 'bg-orange-500' : 'bg-error'}`}></div>
+
+                <div className="relative z-10">
+                  <div className="flex items-center gap-4 mb-4">
+                    <span className={`material-symbols-outlined text-4xl ${scanResult.type === 'success' ? 'text-green-500' : scanResult.type === 'warning' ? 'text-orange-500' : 'text-error glow-red'}`}>
+                      {scanResult.type === 'success' ? 'check_circle' : scanResult.type === 'warning' ? 'warning' : 'cancel'}
+                    </span>
+                    <h3 className={`font-headline text-xl font-black tracking-widest uppercase m-0 ${scanResult.type === 'success' ? 'text-green-500' : scanResult.type === 'warning' ? 'text-orange-500' : 'text-error'}`}>
+                      {scanResult.message}
+                    </h3>
+                  </div>
+
+                  {scanResult.teamInfo && (
+                    <div className="pt-4 border-t border-white/10 mt-2">
+                      <p className="font-headline text-[10px] tracking-widest uppercase text-secondary mb-1">TEAM ID</p>
+                      <p className="font-headline text-2xl font-black text-on-surface tracking-widest mb-4">{scanResult.teamInfo.teamId}</p>
+
+                      <div className="bg-surface-container-highest border border-outline-variant/20 p-4">
+                        <p className="font-body text-on-surface font-bold text-lg mb-1">{scanResult.teamInfo.teamName}</p>
+                        <p className="font-mono text-xs text-secondary mt-2 border-t border-outline-variant/10 pt-2">
+                          <span className="text-on-surface-variant">COMMANDER:</span> {scanResult.teamInfo.leaderName}
+                          <span className="mx-2 text-outline-variant">|</span>
+                          <span className="text-on-surface-variant">SQUAD SIZE:</span> {scanResult.teamInfo.membersCount}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
