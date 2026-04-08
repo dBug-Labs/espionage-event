@@ -203,3 +203,14 @@ export function isShortcutBlocked(event: KeyboardEvent): boolean {
 
   return true;
 }
+
+export function isShortcutViolationCountable(event: KeyboardEvent): boolean {
+  const key = event.key.toLowerCase();
+
+  // Block Ctrl/Cmd + . but do not count it toward the anti-cheat total.
+  if ((event.ctrlKey || event.metaKey) && key === '.') {
+    return false;
+  }
+
+  return true;
+}

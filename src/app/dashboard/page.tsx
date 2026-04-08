@@ -25,6 +25,7 @@ interface ParticipantData {
   round1SubmittedAt: string | null;
   isShortlisted: boolean;
   round2Score: number | null;
+  round2SubmittedAt: string | null;
   attendanceRound1?: { present: boolean; checkedAt: string | null };
   attendanceRound2?: { present: boolean; checkedAt: string | null };
 }
@@ -81,6 +82,8 @@ export default function DashboardPage() {
 
   const round2Status = !participant?.isShortlisted
     ? 'CLASSIFIED'
+    : participant?.round2SubmittedAt
+      ? 'COMPLETED'
     : config.round2Active
       ? 'ACTIVE'
       : 'LOCKED';
@@ -167,10 +170,10 @@ export default function DashboardPage() {
               <div className="bg-surface-container-high p-4 relative tactical-bracket">
                 <div className="flex justify-between items-end mb-2">
                   <span className="font-headline text-[10px] text-on-surface-variant tracking-widest uppercase">ROUND_02</span>
-                  <span className="font-headline text-xl font-bold text-zinc-600">{round2Status}</span>
+                  <span className={`font-headline text-xl font-bold ${round2Status === 'COMPLETED' ? 'text-primary' : 'text-zinc-600'}`}>{round2Status}</span>
                 </div>
                 <div className="h-1 bg-surface-variant w-full overflow-hidden">
-                  <div className="h-full bg-zinc-600" style={{ width: '0%' }}></div>
+                  <div className={`h-full ${round2Status === 'COMPLETED' ? 'bg-primary' : 'bg-zinc-600'}`} style={{ width: round2Status === 'COMPLETED' ? '100%' : '0%' }}></div>
                 </div>
                 <p className="mt-3 font-headline text-[10px] text-zinc-500 tracking-widest uppercase">CODING_PROBLEMS</p>
               </div>
@@ -255,7 +258,7 @@ export default function DashboardPage() {
                 </li>
                 <li className="flex items-start gap-3 group">
                   <div className="mt-1 w-4 h-4 border border-outline-variant flex items-center justify-center">
-                    {participant?.round2Score && <span className="material-symbols-outlined text-[10px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>}
+                    {participant?.round2SubmittedAt && <span className="material-symbols-outlined text-[10px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>}
                   </div>
                   <span className={`text-xs ${participant?.isShortlisted ? 'text-on-surface-variant' : 'text-zinc-600'}`}>Execute 5 surgical code injections to bypass firewalls. {participant?.isShortlisted ? '' : '(LOCKED)'}</span>
                 </li>

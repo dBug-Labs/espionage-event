@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { getSession } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { getQuestionLanguageIds, getStarterCode, isShortcutBlocked } from '@/lib/round2';
+import { getQuestionLanguageIds, getStarterCode, isShortcutBlocked, isShortcutViolationCountable } from '@/lib/round2';
 import { enterSecureFullscreen, exitSecureFullscreen, reenterSecureFullscreen, unlockSecureTestKeys } from '@/lib/testSecurity';
 
 const Editor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
@@ -73,6 +73,7 @@ export default function Round2Page() {
   const [allowFullscreenExit, setAllowFullscreenExit] = useState(false);
   const [isFinalSubmitted, setIsFinalSubmitted] = useState(false);
   const [showFinalSubmitConfirm, setShowFinalSubmitConfirm] = useState(false);
+  const [showFinalSubmitSuccess, setShowFinalSubmitSuccess] = useState(false);
   const [timeLeft, setTimeLeft] = useState(90 * 60); // 90 minutes
   const warningsRef = useRef(0);
   const keyViolationsRef = useRef(0);
@@ -110,12 +111,12 @@ export default function Round2Page() {
     load();
   }, [session?.email]);
 
-  async function leaveSecureEnvironment(path: string) {
+  const leaveSecureEnvironment = useCallback(async (path: string) => {
     allowFullscreenExitRef.current = true;
     setAllowFullscreenExit(true);
     await exitSecureFullscreen();
     router.push(path);
-  }
+  }, [router]);
 
   const triggerWarning = useCallback((message: string) => {
     const nextWarnings = warningsRef.current + 1;
@@ -141,7 +142,23 @@ export default function Round2Page() {
     }
   }, []);
 
-  const triggerKeyViolation = useCallback((key: string) => {
+  const triggerKeyViolation = useCallback((key: string, shouldCount = true) => {
+    if (!shouldCount) {
+      setKeyWarningMessage(`Blocked shortcut "${key.toUpperCase()}" detected.`);
+      setShowKeyWarning(true);
+
+      if (keyWarningTimeoutRef.current) {
+        window.clearTimeout(keyWarningTimeoutRef.current);
+        keyWarningTimeoutRef.current = null;
+      }
+
+      keyWarningTimeoutRef.current = window.setTimeout(() => {
+        setShowKeyWarning(false);
+        keyWarningTimeoutRef.current = null;
+      }, 2500);
+      return;
+    }
+
     const newCount = keyViolationsRef.current + 1;
     keyViolationsRef.current = newCount;
     setKeyViolations(newCount);
@@ -191,7 +208,7 @@ export default function Round2Page() {
       if (isShortcutBlocked(event)) {
         event.preventDefault();
         event.stopPropagation();
-        triggerKeyViolation(event.key);
+        triggerKeyViolation(event.key, isShortcutViolationCountable(event));
       }
     };
     const prevent = (event: Event) => event.preventDefault();
@@ -238,16 +255,26 @@ export default function Round2Page() {
       const res = await fetch('/api/round2/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: session?.email })
+        body: JSON.stringify({
+          email: session?.email,
+          warnings: warningsRef.current,
+          keyViolations: keyViolationsRef.current,
+        })
       });
       if (res.ok) {
         setAllowFullscreenExit(true);
         allowFullscreenExitRef.current = true;
+        setShowFinalSubmitSuccess(true);
+        window.setTimeout(() => {
+          void leaveSecureEnvironment('/dashboard');
+        }, 1400);
+      } else {
+        setIsFinalSubmitted(false);
       }
     } catch {
-      // silent fail if already submitted
+      setIsFinalSubmitted(false);
     }
-  }, [isFinalSubmitted, session?.email]);
+  }, [isFinalSubmitted, leaveSecureEnvironment, session?.email]);
 
   useEffect(() => {
     if (!started || isFinalSubmitted || disqualified) return;
@@ -638,6 +665,18 @@ export default function Round2Page() {
         </div>
       )}
 
+      {showFinalSubmitSuccess && (
+        <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="w-full max-w-md border border-green-500/50 bg-[#001108] p-6 text-center shadow-[0_0_40px_rgba(34,197,94,0.15)]">
+            <span className="material-symbols-outlined text-green-500 text-5xl mb-4">check_circle</span>
+            <h2 className="font-headline text-xl font-black uppercase tracking-widest text-green-500 mb-3">Test Submitted</h2>
+            <p className="text-sm text-on-surface-variant leading-relaxed">
+              Final submission recorded. Redirecting to dashboard...
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="w-64 bg-surface-container-low border-r border-outline-variant/30 flex flex-col shrink-0 relative z-10 shadow-xl">
         <div className="p-4 border-b border-outline-variant/30 bg-[#0e0e0e] flex items-center justify-between">
           <p className="font-headline text-[10px] tracking-widest text-primary font-bold uppercase flex items-center gap-2">
@@ -759,6 +798,14 @@ export default function Round2Page() {
               <div className="md:col-span-2">
                 <h4 className="font-headline text-[10px] uppercase tracking-widest text-secondary mb-2 border-b border-outline-variant/20 pb-1">Constraints</h4>
                 <p className="font-mono text-xs text-primary bg-primary/5 p-3 border border-primary/20 whitespace-pre-wrap">{question.constraints}</p>
+              </div>
+              <div>
+                <h4 className="font-headline text-[10px] uppercase tracking-widest text-secondary mb-2 border-b border-outline-variant/20 pb-1">Sample Input</h4>
+                <pre className="font-mono text-xs text-on-surface-variant bg-black/40 p-3 border border-outline-variant/20 whitespace-pre-wrap overflow-x-auto">{question.sampleInput}</pre>
+              </div>
+              <div>
+                <h4 className="font-headline text-[10px] uppercase tracking-widest text-secondary mb-2 border-b border-outline-variant/20 pb-1">Sample Output</h4>
+                <pre className="font-mono text-xs text-on-surface-variant bg-black/40 p-3 border border-outline-variant/20 whitespace-pre-wrap overflow-x-auto">{question.sampleOutput}</pre>
               </div>
             </div>
           </div>

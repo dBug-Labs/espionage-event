@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     await connectToDatabase();
     const participant = await Participant.findOne(
       { email: email.toLowerCase() },
-      'participantId name round1Score round1SubmittedAt isShortlisted round2Score attendanceRound1 attendanceRound2'
+      'participantId name round1Score round1SubmittedAt isShortlisted round2Score round2SubmittedAt attendanceRound1 attendanceRound2'
     ).lean();
 
     if (!participant) {
