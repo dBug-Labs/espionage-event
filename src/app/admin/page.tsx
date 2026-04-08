@@ -599,8 +599,8 @@ export default function AdminPage() {
           {[
             { label: 'Teams', value: stats.total, icon: 'group', color: 'text-purple-500 glow-purple' },
             { label: 'Members', value: stats.totalMembers, icon: 'groups', color: 'text-blue-500 glow-blue' },
-            { label: 'RSVP Yes', value: `${stats.rsvpConfirmed}/${50}`, icon: 'how_to_reg', color: 'text-green-500 glow-green' },
-            { label: 'RSVP Members', value: `${stats.rsvpConfirmedMembers}/${100}`, icon: 'verified', color: 'text-primary glow-red' },
+            { label: 'RSVP Teams', value: stats.rsvpConfirmed, icon: 'how_to_reg', color: 'text-green-500 glow-green' },
+            { label: 'RSVP Members', value: `${stats.rsvpConfirmedMembers}/${120}`, icon: 'verified', color: 'text-primary glow-red' },
             { label: 'R1 Done', value: stats.round1Done, icon: 'psychology', color: 'text-cyan-500 glow-cyan' },
             { label: 'Shortlisted', value: stats.shortlisted, icon: 'military_tech', color: 'text-orange-500 glow-orange' },
           ].map((s) => (
@@ -754,11 +754,11 @@ export default function AdminPage() {
                     RSVP Controls
                   </h3>
                   <p className="text-secondary font-body text-xs leading-relaxed mb-4">
-                    Send RSVP emails to all team leaders. They must confirm to secure their spot. Cap: <strong className="text-green-400">50 teams / 100 members</strong>.
+                    Send RSVP emails to all team leaders. They must confirm to secure their spot. Cap: <strong className="text-green-400">120 members</strong>.
                   </p>
                   <div className="bg-surface-container-highest border border-outline-variant/30 p-3 mb-4 text-center">
                     <span className="font-headline text-[10px] tracking-widest uppercase text-secondary">
-                      RSVP: <strong className="text-green-500">{stats.rsvpConfirmed}</strong>/50 teams • <strong className="text-green-500">{stats.rsvpConfirmedMembers}</strong>/100 members
+                      RSVP: <strong className="text-green-500">{stats.rsvpConfirmedMembers}</strong>/120 members • <strong className="text-green-500">{stats.rsvpConfirmed}</strong> teams
                     </span>
                   </div>
                   <div className="flex flex-col gap-3">

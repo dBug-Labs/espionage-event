@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
 import Participant from '@/models/Participant';
 
-const MAX_TEAMS = 50;
-const MAX_MEMBERS = 100;
+const MAX_MEMBERS = 120;
 
 function serializeParticipant(participant: {
   participantId: string;
@@ -55,6 +54,20 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Check if cap is already reached for pending RSVP
+    const { confirmedMembers } = await getConfirmedCounts();
+    const newMembers = participant.teamType === 'duo' ? 2 : 1;
+
+    if (confirmedMembers + newMembers > MAX_MEMBERS) {
+      return NextResponse.json(
+        {
+          error: 'RSVP is full! The maximum number of members has been reached.',
+          capReached: true,
+        },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       requiresConfirmation: true,
@@ -88,18 +101,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const { confirmedTeams, confirmedMembers } = await getConfirmedCounts();
+    const { confirmedMembers } = await getConfirmedCounts();
     const newMembers = participant.teamType === 'duo' ? 2 : 1;
-
-    if (confirmedTeams >= MAX_TEAMS) {
-      return NextResponse.json(
-        {
-          error: 'RSVP is full! The maximum number of teams has been reached.',
-          capReached: true,
-        },
-        { status: 403 }
-      );
-    }
 
     if (confirmedMembers + newMembers > MAX_MEMBERS) {
       return NextResponse.json(
