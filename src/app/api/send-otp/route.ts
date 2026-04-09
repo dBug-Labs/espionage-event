@@ -4,6 +4,7 @@ import OTP from '@/models/OTP';
 import { verifyCaptcha } from '@/lib/captcha';
 import { getConfig } from '@/models/EventConfig';
 import nodemailer from 'nodemailer';
+import { isOtpPaused, pausedResponse } from '@/lib/accessControl';
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -21,6 +22,10 @@ function generateOTP(): string {
 
 export async function POST(req: NextRequest) {
   try {
+    if (isOtpPaused()) {
+      return pausedResponse('OTP generation is temporarily paused.');
+    }
+
     const body = await req.json();
     const { email, captchaToken } = body;
 

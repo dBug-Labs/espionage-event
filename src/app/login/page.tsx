@@ -6,6 +6,11 @@ import { setSession } from '@/lib/auth';
 import Link from 'next/link';
 
 export default function LoginPage() {
+  const loginPaused =
+    process.env.NEXT_PUBLIC_LOGIN_PAUSED === 'true' ||
+    process.env.NEXT_PUBLIC_LOGIN_PAUSED === '1' ||
+    process.env.NEXT_PUBLIC_OTP_ROUTES_PAUSED === 'true' ||
+    process.env.NEXT_PUBLIC_OTP_ROUTES_PAUSED === '1';
   const router = useRouter();
   const [step, setStep] = useState<'email' | 'otp'>('email');
   const [email, setEmail] = useState('');
@@ -15,6 +20,11 @@ export default function LoginPage() {
   const [success, setSuccess] = useState('');
 
   async function handleSendOTP() {
+    if (loginPaused) {
+      setError('Login access is temporarily paused.');
+      return;
+    }
+
     if (!email.trim()) {
       setError('Enter your registered email.');
       return;
@@ -42,6 +52,11 @@ export default function LoginPage() {
   }
 
   async function handleVerifyOTP() {
+    if (loginPaused) {
+      setError('Login access is temporarily paused.');
+      return;
+    }
+
     if (!otp.trim()) {
       setError('Enter the 6-digit OTP.');
       return;
@@ -101,6 +116,13 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-6">
+            {loginPaused && (
+              <div className="border border-error/40 bg-error/10 px-4 py-4 text-center">
+                <p className="font-headline text-[10px] tracking-[0.2em] uppercase text-error">Login Paused</p>
+                <p className="mt-2 text-sm text-on-surface-variant">This route is temporarily disabled on deployment.</p>
+              </div>
+            )}
+
             {step === 'email' ? (
               <>
                 <p className="font-headline text-xs text-secondary text-center uppercase tracking-[0.2em] mb-4">
@@ -127,7 +149,7 @@ export default function LoginPage() {
                 <button
                   className="w-full py-4 mt-6 bg-primary text-on-primary font-headline font-black text-lg tracking-[0.2em] uppercase transition-all hover:bg-primary-container active:scale-[0.98] shadow-[0_0_20px_rgba(255,180,168,0.2)] disabled:opacity-50 flex justify-center items-center gap-2"
                   onClick={handleSendOTP}
-                  disabled={loading}
+                  disabled={loading || loginPaused}
                 >
                   {loading ? 'TRANSMITTING...' : 'SEND_ACCESS_CODE'}
                   {!loading && <span className="material-symbols-outlined text-lg">radar</span>}
@@ -161,7 +183,7 @@ export default function LoginPage() {
                 <button
                   className="w-full py-4 mt-8 bg-primary text-on-primary font-headline font-black text-lg tracking-[0.2em] uppercase transition-all hover:bg-primary-container active:scale-[0.98] shadow-[0_0_20px_rgba(255,180,168,0.2)] disabled:opacity-50 flex justify-center items-center gap-2"
                   onClick={handleVerifyOTP}
-                  disabled={loading || otp.length < 6}
+                  disabled={loading || otp.length < 6 || loginPaused}
                 >
                   {loading ? 'VERIFYING...' : 'AUTHENTICATE'}
                   {!loading && <span className="material-symbols-outlined text-lg">lock_open</span>}

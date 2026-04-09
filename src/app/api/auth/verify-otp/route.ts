@@ -3,9 +3,14 @@ import connectToDatabase from '@/lib/mongodb';
 import Participant from '@/models/Participant';
 import OTP from '@/models/OTP';
 import crypto from 'crypto';
+import { isLoginPaused, isOtpPaused, pausedResponse } from '@/lib/accessControl';
 
 export async function POST(req: NextRequest) {
   try {
+    if (isLoginPaused() || isOtpPaused()) {
+      return pausedResponse('Login and OTP access is temporarily paused.');
+    }
+
     const { email, otp } = await req.json();
     if (!email || !otp) {
       return NextResponse.json({ error: 'Email and OTP are required.' }, { status: 400 });

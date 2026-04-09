@@ -3,6 +3,7 @@ import connectToDatabase from '@/lib/mongodb';
 import Participant from '@/models/Participant';
 import OTP from '@/models/OTP';
 import nodemailer from 'nodemailer';
+import { isLoginPaused, isOtpPaused, pausedResponse } from '@/lib/accessControl';
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -16,6 +17,10 @@ const transporter = nodemailer.createTransport({
 
 export async function POST(req: NextRequest) {
   try {
+    if (isLoginPaused() || isOtpPaused()) {
+      return pausedResponse('Login and OTP access is temporarily paused.');
+    }
+
     const { email } = await req.json();
     if (!email) {
       return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
