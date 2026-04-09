@@ -1,6 +1,8 @@
 const DEFAULT_PISTON_API_URL = 'https://emkc.org/api/v2/piston';
 const DEFAULT_REQUEST_TIMEOUT_MS = 15000;
 const RUNTIMES_CACHE_TTL_MS = 5 * 60 * 1000;
+const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
+const MAX_RETRY_ATTEMPTS = 3;
 
 type PistonStage = {
   stdout?: string | null;
@@ -103,6 +105,33 @@ function normalizeExpectedOutput(value: string): string {
   return normalizeNewlines(value).trimEnd();
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parseRetryAfterMs(value: string | null): number | null {
+  if (!value) return null;
+
+  const seconds = Number(value);
+  if (!Number.isNaN(seconds) && seconds >= 0) {
+    return seconds * 1000;
+  }
+
+  const dateMs = Date.parse(value);
+  if (Number.isNaN(dateMs)) return null;
+
+  return Math.max(dateMs - Date.now(), 0);
+}
+
+function getRetryDelayMs(attempt: number, retryAfterHeader: string | null): number {
+  const hintedDelay = parseRetryAfterMs(retryAfterHeader);
+  if (hintedDelay != null) {
+    return Math.min(Math.max(hintedDelay, 250), 5000);
+  }
+
+  return Math.min(250 * 2 ** (attempt - 1), 2000);
+}
+
 function isStageSuccessful(stage: PistonStage | null | undefined): boolean {
   if (!stage) return true;
   return !stage.status && !stage.signal && (stage.code ?? 0) === 0;
@@ -195,6 +224,45 @@ async function parseErrorResponse(response: Response): Promise<string> {
   }
 }
 
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  fetchImpl: typeof fetch,
+  timeoutMs: number
+): Promise<Response> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort('Piston request timed out.'), timeoutMs);
+
+    try {
+      const response = await fetchImpl(url, {
+        ...init,
+        signal: controller.signal,
+      });
+
+      if (!response.ok && RETRYABLE_STATUS_CODES.has(response.status) && attempt < MAX_RETRY_ATTEMPTS) {
+        await sleep(getRetryDelayMs(attempt, response.headers.get('retry-after')));
+        continue;
+      }
+
+      return response;
+    } catch (error) {
+      lastError = error;
+      if (!(error instanceof Error && error.name === 'AbortError') || attempt >= MAX_RETRY_ATTEMPTS) {
+        throw error;
+      }
+
+      await sleep(getRetryDelayMs(attempt, null));
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Piston request failed.');
+}
+
 export async function getPistonRuntimes(fetchImpl: typeof fetch = fetch): Promise<PistonRuntime[]> {
   if (cachedRuntimes && cachedRuntimes.expiresAt > Date.now()) {
     return cachedRuntimes.data;
@@ -205,13 +273,18 @@ export async function getPistonRuntimes(fetchImpl: typeof fetch = fetch): Promis
   }
 
   runtimeRequest = (async () => {
-    const response = await fetchImpl(`${getPistonApiUrl()}/runtimes`, {
-      method: 'GET',
-      headers: {
-        Authorization: getPistonApiKey(),
+    const response = await fetchWithRetry(
+      `${getPistonApiUrl()}/runtimes`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: getPistonApiKey(),
+        },
+        cache: 'no-store',
       },
-      cache: 'no-store',
-    });
+      fetchImpl,
+      DEFAULT_REQUEST_TIMEOUT_MS
+    );
 
     if (!response.ok) {
       throw new PistonServiceError(await parseErrorResponse(response), 'API_ERROR', 502);
@@ -269,27 +342,28 @@ export async function executePistonSubmission({
     throw new PistonServiceError('A valid Piston runtime is required.', 'BAD_REQUEST', 400);
   }
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort('Piston request timed out.'), timeoutMs);
-
   try {
-    const response = await fetchImpl(`${getPistonApiUrl()}/execute`, {
-      method: 'POST',
-      headers: buildHeaders(),
-      signal: controller.signal,
-      body: JSON.stringify({
-        language,
-        version,
-        files: [{ content: sourceCode }],
-        stdin: stdin ?? '',
-        compile_timeout: cpuTimeLimit ? Math.max(cpuTimeLimit * 1000, 1000) : undefined,
-        run_timeout: cpuTimeLimit ? Math.max(cpuTimeLimit * 1000, 1000) : undefined,
-        compile_cpu_time: cpuTimeLimit ? Math.max(cpuTimeLimit * 1000, 1000) : undefined,
-        run_cpu_time: cpuTimeLimit ? Math.max(cpuTimeLimit * 1000, 1000) : undefined,
-        compile_memory_limit: memoryLimit ? memoryLimit * 1024 * 1024 : undefined,
-        run_memory_limit: memoryLimit ? memoryLimit * 1024 * 1024 : undefined,
-      }),
-    });
+    const response = await fetchWithRetry(
+      `${getPistonApiUrl()}/execute`,
+      {
+        method: 'POST',
+        headers: buildHeaders(),
+        body: JSON.stringify({
+          language,
+          version,
+          files: [{ content: sourceCode }],
+          stdin: stdin ?? '',
+          compile_timeout: cpuTimeLimit ? Math.max(cpuTimeLimit * 1000, 1000) : undefined,
+          run_timeout: cpuTimeLimit ? Math.max(cpuTimeLimit * 1000, 1000) : undefined,
+          compile_cpu_time: cpuTimeLimit ? Math.max(cpuTimeLimit * 1000, 1000) : undefined,
+          run_cpu_time: cpuTimeLimit ? Math.max(cpuTimeLimit * 1000, 1000) : undefined,
+          compile_memory_limit: memoryLimit ? memoryLimit * 1024 * 1024 : undefined,
+          run_memory_limit: memoryLimit ? memoryLimit * 1024 * 1024 : undefined,
+        }),
+      },
+      fetchImpl,
+      timeoutMs
+    );
 
     if (!response.ok) {
       throw new PistonServiceError(await parseErrorResponse(response), 'API_ERROR', 502);
@@ -306,7 +380,5 @@ export async function executePistonSubmission({
     }
 
     throw new PistonServiceError('Unable to reach Piston.', 'NETWORK_ERROR', 502);
-  } finally {
-    clearTimeout(timer);
   }
 }
