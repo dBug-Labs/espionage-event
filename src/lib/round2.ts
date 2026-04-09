@@ -190,18 +190,15 @@ export function pickRound2Questions<T extends { _id: string; order: number; diff
 
 export function isShortcutBlocked(event: KeyboardEvent): boolean {
   const key = event.key.toLowerCase();
-  const ctrlOrMeta = event.ctrlKey || event.metaKey;
 
+  if (key === 'backspace') return false;
   if (key === 'escape') return true;
-  if (key === 'meta' || key === 'os') return true;
   if (key === 'alt') return true;
   if (/^f\d{1,2}$/.test(key)) return true;
   if (event.altKey && key === 'tab') return true;
   if (event.altKey && ['arrowleft', 'arrowright', 'f4'].includes(key)) return true;
   if (event.metaKey || event.ctrlKey) return true;
-  if (!ctrlOrMeta) return false;
-
-  return true;
+  return false;
 }
 
 export function isShortcutViolationCountable(event: KeyboardEvent): boolean {
