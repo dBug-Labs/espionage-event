@@ -30,6 +30,7 @@ interface Participant {
   round1Warnings: number;
   isShortlisted: boolean;
   round2Score: number | null;
+  round2SubmittedAt?: string | null;
   round2AiScore?: number | null;
   round2FinalScore?: number | null;
   round2FinalSubmissions?: {
@@ -132,6 +133,7 @@ export default function AdminPage() {
   const [sendingRSVP, setSendingRSVP] = useState(false);
   const [sendingQR, setSendingQR] = useState(false);
   const [evaluatingRound2, setEvaluatingRound2] = useState(false);
+  const [redoingRoundKey, setRedoingRoundKey] = useState('');
   const [selectedRound2ParticipantId, setSelectedRound2ParticipantId] = useState('');
 
   // Questions State
@@ -323,6 +325,32 @@ export default function AdminPage() {
     } catch {
       alert('Failed to run AI evaluation.');
     } finally { setEvaluatingRound2(false); }
+  }
+
+  async function handleRedoRound(round: 'round1' | 'round2', participantId: string) {
+    const roundLabel = round === 'round1' ? 'Round 1' : 'Round 2';
+    if (!confirm(`Allow ${participantId} to redo ${roundLabel}?\n\nThis clears the submitted score and submission data for that round only.`)) return;
+
+    const actionKey = `${round}:${participantId}`;
+    setRedoingRoundKey(actionKey);
+    try {
+      const res = await fetch('/api/admin/redo-round', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: savedPassword, participantId, round }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || `Failed to reset ${roundLabel}.`);
+        return;
+      }
+      alert(data.message || `${participantId} can redo ${roundLabel}.`);
+      fetchParticipants(savedPassword);
+    } catch {
+      alert(`Failed to reset ${roundLabel}.`);
+    } finally {
+      setRedoingRoundKey('');
+    }
   }
 
   async function handleCreateNotification() {
@@ -787,19 +815,33 @@ export default function AdminPage() {
                     <span className="material-symbols-outlined text-[18px]">gavel</span>
                     Shortlist Command
                   </h3>
-                  <p className="text-secondary font-body text-xs leading-relaxed mb-6">
-                    Select the top N teams by Round 1 score. All team members will be notified via email.
+                  <p className="text-secondary font-body text-xs leading-relaxed mb-4">
+                    Select the top teams by Round 1 score. All shortlisted team members will be notified via email.
                   </p>
-                  <div className="flex gap-4">
-                    <div className="relative w-24">
-                      <span className="absolute top-1/2 -translate-y-1/2 left-3 font-headline text-[10px] text-secondary">TOP</span>
+                  <div className="bg-surface-container-highest border border-outline-variant/30 p-4 mb-4">
+                    <label className="block font-headline text-[10px] tracking-[0.2em] uppercase text-secondary mb-2">
+                      Shortlist Team Count
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <span className="font-headline text-xs uppercase tracking-widest text-on-surface whitespace-nowrap">
+                        Shortlist top
+                      </span>
                       <input
                         type="number"
+                        min={1}
                         value={shortlistCount}
-                        onChange={(e) => setShortlistCount(Number(e.target.value))}
-                        className="w-full bg-surface-container-highest border border-outline-variant/50 focus:border-primary text-on-surface font-headline px-10 py-3 text-center"
+                        onChange={(e) => setShortlistCount(Math.max(1, Number(e.target.value) || 1))}
+                        className="w-24 bg-[#050505] border border-primary/30 focus:border-primary text-on-surface font-headline text-center px-3 py-2 outline-none"
                       />
+                      <span className="font-headline text-xs uppercase tracking-widest text-on-surface whitespace-nowrap">
+                        teams
+                      </span>
                     </div>
+                    <p className="text-[11px] text-secondary mt-3">
+                      Example: enter <span className="text-primary font-headline">20</span> or <span className="text-primary font-headline">30</span> before running the shortlist command.
+                    </p>
+                  </div>
+                  <div className="flex gap-4">
                     <button
                       onClick={handleShortlist}
                       disabled={shortlisting}
@@ -819,7 +861,7 @@ export default function AdminPage() {
               <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead>
                   <tr className="bg-[#0a0a0a] border-b border-outline-variant text-[9px] font-headline tracking-widest uppercase text-primary">
-                    {['Rank', 'ID', 'Name', 'Type', 'Score', 'Warnings', 'Submitted', 'Target'].map((h) => (
+                    {['Rank', 'ID', 'Name', 'Type', 'Score', 'Warnings', 'Submitted', 'Action'].map((h) => (
                       <th key={h} className="p-4">{h}</th>
                     ))}
                   </tr>
@@ -844,7 +886,16 @@ export default function AdminPage() {
                         </td>
                         <td className="p-4 text-secondary font-mono">{p.round1SubmittedAt ? new Date(p.round1SubmittedAt).toLocaleString('en-IN', { timeStyle: 'short' }) : '—'}</td>
                         <td className="p-4">
-                          {p.isShortlisted ? <span className="text-primary font-headline text-[10px] tracking-widest border border-primary/30 px-2 py-1 bg-primary/10">SHORTLISTED</span> : <span className="text-secondary">—</span>}
+                          <div className="flex flex-wrap items-center gap-2">
+                            {p.isShortlisted ? <span className="text-primary font-headline text-[10px] tracking-widest border border-primary/30 px-2 py-1 bg-primary/10">SHORTLISTED</span> : <span className="text-secondary">—</span>}
+                            <button
+                              onClick={() => handleRedoRound('round1', p.participantId)}
+                              disabled={redoingRoundKey === `round1:${p.participantId}`}
+                              className="px-3 py-2 border border-outline-variant/40 text-on-surface font-headline text-[9px] tracking-widest uppercase hover:border-primary hover:text-primary disabled:opacity-50"
+                            >
+                              {redoingRoundKey === `round1:${p.participantId}` ? 'Resetting...' : 'Redo'}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -910,13 +961,22 @@ export default function AdminPage() {
                               <td className="p-4 text-secondary">{solvedCount}/{p.round2FinalSubmissions?.length || p.round2Evaluations?.length || 0}</td>
                               <td className="p-4 text-secondary font-mono">{lastSubmission ? new Date(lastSubmission.submittedAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : '—'}</td>
                               <td className="p-4">
-                                <button
-                                  onClick={(event) => { event.stopPropagation(); handleEvaluateRound2(p.participantId); }}
-                                  disabled={evaluatingRound2}
-                                  className="px-3 py-2 border border-outline-variant/40 text-on-surface font-headline text-[9px] tracking-widest uppercase hover:border-primary hover:text-primary disabled:opacity-50"
-                                >
-                                  Eval
-                                </button>
+                                <div className="flex flex-wrap gap-2">
+                                  <button
+                                    onClick={(event) => { event.stopPropagation(); handleEvaluateRound2(p.participantId); }}
+                                    disabled={evaluatingRound2}
+                                    className="px-3 py-2 border border-outline-variant/40 text-on-surface font-headline text-[9px] tracking-widest uppercase hover:border-primary hover:text-primary disabled:opacity-50"
+                                  >
+                                    Eval
+                                  </button>
+                                  <button
+                                    onClick={(event) => { event.stopPropagation(); handleRedoRound('round2', p.participantId); }}
+                                    disabled={!p.round2SubmittedAt || redoingRoundKey === `round2:${p.participantId}`}
+                                    className="px-3 py-2 border border-outline-variant/40 text-on-surface font-headline text-[9px] tracking-widest uppercase hover:border-primary hover:text-primary disabled:opacity-50"
+                                  >
+                                    {redoingRoundKey === `round2:${p.participantId}` ? 'Resetting...' : 'Redo'}
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
