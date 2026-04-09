@@ -197,7 +197,7 @@ export function isShortcutBlocked(event: KeyboardEvent): boolean {
   if (/^f\d{1,2}$/.test(key)) return true;
   if (event.altKey && key === 'tab') return true;
   if (event.altKey && ['arrowleft', 'arrowright', 'f4'].includes(key)) return true;
-  if (event.metaKey || event.ctrlKey) return true;
+  if (event.metaKey || event.ctrlKey) return false;
   return false;
 }
 
