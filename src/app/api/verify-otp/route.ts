@@ -3,9 +3,14 @@ import connectToDatabase from '@/lib/mongodb';
 import OTP from '@/models/OTP';
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 import crypto from 'crypto';
+import { isOtpPaused, pausedResponse } from '@/lib/accessControl';
 
 export async function POST(req: NextRequest) {
   try {
+    if (isOtpPaused()) {
+      return pausedResponse('OTP verification is temporarily paused.');
+    }
+
     const body = await req.json();
     const { email, otp } = body;
 
