@@ -6,6 +6,12 @@ import { getConfig } from '@/models/EventConfig';
 import { PistonServiceError, executePistonSubmission, getPistonRuntimes } from '@/lib/piston';
 import { buildSubmissionSource, pickRound2Questions, resolvePistonRuntime, ROUND2_QUESTION_COUNT } from '@/lib/round2';
 
+const JUDGE_REQUEST_GAP_MS = 350;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // Submit against hidden test cases — scoring
 export async function POST(req: NextRequest) {
   try {
@@ -56,6 +62,7 @@ export async function POST(req: NextRequest) {
       { input: question.sampleInput, expectedOutput: question.sampleOutput },
       ...question.hiddenTestCases,
     ];
+    const sourceCode = buildSubmissionSource(question.toObject(), language, code);
 
     let passed = 0;
     const total = allTestCases.length;
@@ -63,10 +70,14 @@ export async function POST(req: NextRequest) {
     const results: { testCase: number; status: string; passed: boolean }[] = [];
 
     for (let i = 0; i < allTestCases.length; i++) {
+      if (i > 0) {
+        await delay(JUDGE_REQUEST_GAP_MS);
+      }
+
       const tc = allTestCases[i];
       try {
         const result = await executePistonSubmission({
-          sourceCode: buildSubmissionSource(question.toObject(), language, code),
+          sourceCode,
           language: runtime.pistonLanguage,
           version: runtime.version,
           stdin: tc.input,
