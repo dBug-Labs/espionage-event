@@ -50,3 +50,8 @@ next-env.d.ts
 /merge_questions.js
 /test-rp.js
 /export_q_bank.ts
+# never commit database exports
+/backup_*.json
+
+# allow the env template
+!.env.example
